@@ -1,0 +1,362 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+  /* Minimalist Charcoal & Frost White Theme */
+  --primary: #1a1a1a;
+  --primary-foreground: #f8f9fa;
+  --sidebar-primary: #1a1a1a;
+  --sidebar-primary-foreground: #f8f9fa;
+  --chart-1: #d4d4d4;
+  --chart-2: #a0a0a0;
+  --chart-3: #6b6b6b;
+  --chart-4: #1a1a1a;
+  --chart-5: #0f0f0f;
+  --radius: 0.5rem;
+  --background: #f8f9fa;
+  --foreground: #1a1a1a;
+  --card: #ffffff;
+  --card-foreground: #1a1a1a;
+  --popover: #ffffff;
+  --popover-foreground: #1a1a1a;
+  --secondary: #e8e8e8;
+  --secondary-foreground: #1a1a1a;
+  --muted: #d4d4d4;
+  --muted-foreground: #6b6b6b;
+  --accent: #1a1a1a;
+  --accent-foreground: #f8f9fa;
+  --destructive: #dc2626;
+  --destructive-foreground: #f8f9fa;
+  --border: #d4d4d4;
+  --input: #ffffff;
+  --ring: #1a1a1a;
+  --sidebar: #f8f9fa;
+  --sidebar-foreground: #1a1a1a;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #f8f9fa;
+  --sidebar-border: #d4d4d4;
+  --sidebar-ring: #1a1a1a;
+}
+
+.dark {
+  /* Dark variant - still maintains minimalist aesthetic */
+  --primary: #f8f9fa;
+  --primary-foreground: #1a1a1a;
+  --sidebar-primary: #f8f9fa;
+  --sidebar-primary-foreground: #1a1a1a;
+  --background: #0f0f0f;
+  --foreground: #f8f9fa;
+  --card: #1a1a1a;
+  --card-foreground: #f8f9fa;
+  --popover: #1a1a1a;
+  --popover-foreground: #f8f9fa;
+  --secondary: #2a2a2a;
+  --secondary-foreground: #e8e8e8;
+  --muted: #3a3a3a;
+  --muted-foreground: #a0a0a0;
+  --accent: #f8f9fa;
+  --accent-foreground: #1a1a1a;
+  --destructive: #ef4444;
+  --destructive-foreground: #0f0f0f;
+  --border: #2a2a2a;
+  --input: #1a1a1a;
+  --ring: #f8f9fa;
+  --chart-1: #d4d4d4;
+  --chart-2: #a0a0a0;
+  --chart-3: #6b6b6b;
+  --chart-4: #1a1a1a;
+  --chart-5: #0f0f0f;
+  --sidebar: #0f0f0f;
+  --sidebar-foreground: #f8f9fa;
+  --sidebar-accent: #f8f9fa;
+  --sidebar-accent-foreground: #1a1a1a;
+  --sidebar-border: #2a2a2a;
+  --sidebar-ring: #f8f9fa;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  [type="reset"]:not(:disabled),
+  a[href],
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) {
+    @apply cursor-pointer;
+  }
+}
+
+@layer components {
+
+  /**
+   * Custom container utility that centers content and adds responsive padding.
+   *
+   * This overrides Tailwind's default container behavior to:
+   * - Auto-center content (mx-auto)
+   * - Add responsive horizontal padding
+   * - Set max-width for large screens
+   *
+   * Usage: <div className="container">...</div>
+   *
+   * For custom widths, use max-w-* utilities directly:
+   * <div className="max-w-6xl mx-auto px-4">...</div>
+   */
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    /* 16px - mobile padding */
+    padding-right: 1rem;
+  }
+
+  .flex {
+    min-height: 0;
+    min-width: 0;
+  }
+
+  @media (min-width: 640px) {
+    .container {
+      padding-left: 1.5rem;
+      /* 24px - tablet padding */
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      padding-left: 2rem;
+      /* 32px - desktop padding */
+      padding-right: 2rem;
+      max-width: 1280px;
+      /* Standard content width */
+    }
+  }
+}
+
+/* Typography System */
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .monospace {
+    font-family: 'IBM Plex Mono', monospace;
+  }
+}
+
+/* Minimalist Animations */
+@layer components {
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes pulse-subtle {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.4s ease-out;
+  }
+
+  .animate-slide-down {
+    animation: slideDown 0.4s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out;
+  }
+
+  .animate-pulse-subtle {
+    animation: pulse-subtle 2s ease-in-out infinite;
+  }
+
+  /* Hover Effects */
+  .hover-lift {
+    @apply transition-all duration-200 ease-out hover:shadow-lg hover:translate-y-[-4px];
+  }
+
+  .hover-shadow {
+    @apply transition-shadow duration-200 ease-out hover:shadow-md;
+  }
+
+  /* Button Interactions */
+  .btn-active {
+    @apply active:scale-97 active:transition-transform active:duration-100;
+  }
+
+  /* Divider Line */
+  .divider-line {
+    @apply h-px bg-border;
+  }
+
+  /* Thin Border */
+  .border-thin {
+    border: 1px solid var(--border);
+  }
+
+  /* Product Card Styles */
+  .product-card {
+    background-color: var(--card);
+    color: var(--card-foreground);
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: all 200ms ease-out;
+  }
+
+  .product-card:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+  }
+
+  /* Input Focus Styles */
+  input:focus,
+  textarea:focus,
+  select:focus {
+    @apply outline-none ring-2 ring-primary ring-offset-2;
+  }
+
+
+
+  /* SweetAlert Loading Spinner */
+
+  .swal2-loader {
+    width: 42px !important;
+    height: 42px !important;
+    border-width: 4px !important;
+    border-color: #3b82f6 transparent #3b82f6 transparent !important;
+  }
+
+  .swal2-confirm.swal2-loading {
+    padding-right: 3rem !important;
+  }
+}
+
+/* Make button text white on hover */
+@layer base {
+
+  button:hover:not(:disabled),
+  [role="button"]:hover:not([aria-disabled="true"]),
+  [type="button"]:hover:not(:disabled),
+  [type="submit"]:hover:not(:disabled),
+  [type="reset"]:hover:not(:disabled) {
+    color: white !important;
+  }
+}

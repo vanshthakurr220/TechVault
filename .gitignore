@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+build/
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local uploads
+server/uploads/
+
+# Coverage
+coverage/
+
+# TypeScript
+*.tsbuildinfo
+
+# Package manager
+.pnpm-store/
+desktop.ini
+
+# Local uploads
+server/uploads/
+
+# MongoDB backups
+mongoDB/
