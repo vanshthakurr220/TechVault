@@ -1,4 +1,4 @@
 export const SITE_CONFIG = {
-  companyName: "TechVolt",
+  companyName: "TechVault",
   companyShortName: "TV",
 };
