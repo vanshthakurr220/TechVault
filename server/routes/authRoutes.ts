@@ -13,6 +13,7 @@ import {
   logout,
   getMe,
 } from "../controllers/authController.js";
+
 import {
   sendOTPSignup,
   verifyOTPSignup,
@@ -23,8 +24,13 @@ import {
   sendOTPMobileChange,
   verifyOTPMobileChange,
 } from "../controllers/otpController.js";
+
 import { protect } from "server/middleware/authMiddleware.js";
-import { authLimiter } from "server/middleware/rateLimiter.js";
+
+import {
+  authLimiter,
+  refreshLimiter,
+} from "server/middleware/rateLimiter.js";
 
 const router = express.Router();
 
@@ -36,18 +42,35 @@ router.post("/send-mobile-otp-signup", authLimiter, sendMobileOTPSignup);
 router.post("/verify-mobile-otp-signup", authLimiter, verifyMobileOTPSignup);
 
 // OTP endpoints for email change
-router.post("/send-otp-email-change", protect, sendOTPEmailChange);
-router.post("/verify-otp-email-change", protect, verifyOTPEmailChange);
+router.post("/send-otp-email-change", authLimiter, protect, sendOTPEmailChange);
+router.post(
+  "/verify-otp-email-change",
+  authLimiter,
+  protect,
+  verifyOTPEmailChange,
+);
 
 // OTP endpoints for mobile change
-router.post("/send-otp-mobile-change", protect, sendOTPMobileChange);
-router.post("/verify-otp-mobile-change", protect, verifyOTPMobileChange);
+router.post(
+  "/send-otp-mobile-change",
+  authLimiter,
+  protect,
+  sendOTPMobileChange,
+);
+router.post(
+  "/verify-otp-mobile-change",
+  authLimiter,
+  protect,
+  verifyOTPMobileChange,
+);
 
 // Auth endpoints
 router.post("/signup", authLimiter, signup);
 router.post("/login", authLimiter, login);
 
-router.post("/refresh", refreshToken);
+// Refresh should have separate relaxed limiter
+router.post("/refresh", refreshLimiter, refreshToken);
+
 router.post("/logout", logout);
 router.put("/profile", protect, updateProfile);
 
