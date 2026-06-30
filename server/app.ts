@@ -3,6 +3,10 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 
 import helmet from "helmet";
+import compression from "compression";
+import hpp from "hpp";
+import morgan from "morgan";
+
 import authRoutes from "./routes/authRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
@@ -13,10 +17,13 @@ import wishlistRoutes from "./routes/wishlistRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import couponRoutes from "./routes/couponRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
-import { apiLimiter } from "./middleware/rateLimiter.js";
-import compression from "compression";
-import hpp from "hpp";
-import morgan from "morgan";
+
+import {
+  publicApiLimiter,
+  adminApiLimiter,
+  uploadLimiter,
+} from "./middleware/rateLimiter.js";
+
 import { notFound } from "./middleware/notFound.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 
@@ -26,36 +33,54 @@ app.use(helmet());
 app.use(compression());
 app.use(hpp());
 app.use(morgan("dev"));
+
 app.use(
   cors({
     origin: process.env.CLIENT_URL,
     credentials: true,
   }),
 );
+
 app.use(cookieParser());
 app.use(express.json());
 
-app.use(apiLimiter);
+// ============================================================================
+// AUTH ROUTES
+// Individual auth routes (login, signup, OTP, refresh) should use their own
+// limiters inside authRoutes.ts
+// ============================================================================
 app.use("/api/auth", authRoutes);
 
-app.use("/api/contact", contactRoutes);
+// ============================================================================
+// PUBLIC ROUTES
+// ============================================================================
+app.use("/api/contact", publicApiLimiter, contactRoutes);
 
-app.use("/api/products", productRoutes);
+app.use("/api/products", publicApiLimiter, productRoutes);
 
-app.use("/api/orders", orderRoutes);
+app.use("/api/orders", publicApiLimiter, orderRoutes);
 
-app.use("/api/admin", adminRoutes);
+app.use("/api/cart", publicApiLimiter, cartRoutes);
 
-app.use("/api/cart", cartRoutes);
+app.use("/api/wishlist", publicApiLimiter, wishlistRoutes);
 
-app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/reviews", publicApiLimiter, reviewRoutes);
 
-app.use("/api/reviews", reviewRoutes);
+app.use("/api/coupons", publicApiLimiter, couponRoutes);
 
-app.use("/api/coupons", couponRoutes);
+// ============================================================================
+// ADMIN ROUTES
+// ============================================================================
+app.use("/api/admin", adminApiLimiter, adminRoutes);
 
-app.use("/api/upload", uploadRoutes);
+// ============================================================================
+// FILE UPLOADS
+// ============================================================================
+app.use("/api/upload", uploadLimiter, uploadRoutes);
 
+// ============================================================================
+// ERROR HANDLERS
+// ============================================================================
 app.use(notFound);
 app.use(errorHandler);
 
