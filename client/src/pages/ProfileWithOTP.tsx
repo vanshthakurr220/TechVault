@@ -10,7 +10,6 @@ import {
   Plus,
   Trash2,
   Package,
-  ArrowRight,
   X,
 } from "lucide-react";
 import Swal from "sweetalert2";
@@ -141,7 +140,7 @@ export default function ProfileWithOTP() {
 
   const handleSave = async () => {
     try {
-      await updateProfile(formData.username, formData.phone);
+      await updateProfile(formData.username);
       setIsEditing(false);
     } catch (error) {
       console.error(error);
@@ -461,35 +460,26 @@ export default function ProfileWithOTP() {
                   <label className="block text-sm font-bold monospace mb-2">
                     Phone Number
                   </label>
-                  {isEditing ? (
-                    <input
-                      type="tel"
-                      name="phone"
-                      value={formData.phone}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  ) : (
-                    <div className="flex gap-2 items-end">
-                      <div className="flex-1">
-                        <p className="text-foreground">{formData.phone}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Mobile number changes require OTP verification
-                        </p>
-                      </div>
 
-                      {!isEditing && (
-                        <Button
-                          onClick={() => setShowMobileChangeModal(true)}
-                          size="sm"
-                          variant="outline"
-                          className="whitespace-nowrap"
-                        >
-                          Change Mobile
-                        </Button>
-                      )}
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <p className="text-foreground">{formData.phone}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Mobile number changes require OTP verification
+                      </p>
                     </div>
-                  )}
+
+                    {!isEditing && (
+                      <Button
+                        onClick={() => setShowMobileChangeModal(true)}
+                        size="sm"
+                        variant="outline"
+                        className="whitespace-nowrap"
+                      >
+                        Change Mobile
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 {isEditing && (
@@ -506,144 +496,57 @@ export default function ProfileWithOTP() {
             </div>
 
             {/* Addresses Section */}
-            <div className="bg-card border border-border rounded-lg p-6 mt-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold monospace">
-                  <MapPin className="inline mr-2" size={20} />
+            <div className="bg-card border border-border rounded-xl p-4 sm:p-6 mt-6">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
+                <h2 className="text-xl sm:text-2xl font-bold monospace flex items-center gap-2">
+                  <MapPin size={20} />
                   Addresses
                 </h2>
+
                 <Button
                   onClick={() => setShowAddressForm(!showAddressForm)}
                   size="sm"
-                  className="flex items-center gap-2"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2"
                 >
                   <Plus size={16} />
                   Add Address
                 </Button>
               </div>
 
-              {/* Add/Edit Address Form */}
-              {showAddressForm && (
-                <div className="bg-secondary/50 p-4 rounded-lg mb-6">
-                  <h3 className="text-lg font-bold mb-4">
-                    {editingAddressId ? "Update Address" : "Add Address"}
-                  </h3>
-
-                  <form
-                    onSubmit={handleAddAddress}
-                    className="bg-secondary/50 p-4 rounded-lg mb-6 space-y-3"
-                  >
-                    <input
-                      type="text"
-                      name="name"
-                      placeholder="Full Name"
-                      value={newAddress.name}
-                      onChange={handleAddressChange}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                    />
-                    <input
-                      type="text"
-                      name="street"
-                      placeholder="Street Address"
-                      value={newAddress.street}
-                      onChange={handleAddressChange}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                    />
-                    <div className="grid grid-cols-2 gap-3">
-                      <input
-                        type="text"
-                        name="city"
-                        placeholder="City"
-                        value={newAddress.city}
-                        onChange={handleAddressChange}
-                        className="px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                      />
-                      <input
-                        type="text"
-                        name="state"
-                        placeholder="State"
-                        value={newAddress.state}
-                        onChange={handleAddressChange}
-                        className="px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <input
-                        type="text"
-                        name="zipCode"
-                        placeholder="Zip Code"
-                        value={newAddress.zipCode}
-                        onChange={handleAddressChange}
-                        className="px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                      />
-                      <input
-                        type="tel"
-                        name="phone"
-                        placeholder="Phone"
-                        value={newAddress.phone}
-                        onChange={handleAddressChange}
-                        className="px-3 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary text-sm"
-                      />
-                    </div>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={newAddress.isDefault}
-                        onChange={(e) =>
-                          setNewAddress({
-                            ...newAddress,
-                            isDefault: e.target.checked,
-                          })
-                        }
-                      />
-                      Set as default address
-                    </label>
-                    <div className="flex gap-2">
-                      <Button type="submit" size="sm" className="flex-1">
-                        {editingAddressId ? "Update Address" : "Save Address"}
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowAddressForm(false)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </form>
-                </div>
-              )}
-
-              {/* Addresses List */}
               <div className="space-y-3">
                 {addresses.length > 0 ? (
                   addresses.map((address) => (
                     <div
                       key={address._id}
-                      className={`p-4 rounded-lg border-2 ${
+                      className={`p-4 rounded-xl border ${
                         address.isDefault
                           ? "border-primary bg-primary/5"
-                          : "border-border"
+                          : "border-border bg-background"
                       }`}
                     >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-bold">{address.name}</p>
-                          <p className="text-sm text-muted-foreground">
+                      <div className="flex flex-col sm:flex-row sm:justify-between gap-4">
+                        <div className="min-w-0">
+                          <p className="font-bold text-base wrap-break-words">
+                            {address.name}
+                          </p>
+
+                          <p className="text-sm text-muted-foreground mt-1 wrap-break-words leading-relaxed">
                             {address.street}, {address.city}, {address.state}{" "}
                             {address.zipCode}
                           </p>
-                          <p className="text-sm text-muted-foreground">
+
+                          <p className="text-sm text-muted-foreground mt-1">
                             {address.phone}
                           </p>
+
                           {address.isDefault && (
-                            <span className="inline-block mt-2 px-2 py-1 bg-primary text-primary-foreground text-xs rounded">
+                            <span className="inline-block mt-3 px-3 py-1 bg-primary text-primary-foreground text-xs rounded-md font-semibold">
                               Default
                             </span>
                           )}
                         </div>
-                        <div className="flex gap-2">
+
+                        <div className="flex flex-wrap sm:flex-nowrap gap-2 sm:justify-end">
                           {!address.isDefault && (
                             <Button
                               onClick={() =>
@@ -651,6 +554,7 @@ export default function ProfileWithOTP() {
                               }
                               size="sm"
                               variant="outline"
+                              className="flex-1 sm:flex-none"
                             >
                               Set Default
                             </Button>
@@ -660,16 +564,20 @@ export default function ProfileWithOTP() {
                             onClick={() => handleEditAddress(address)}
                             size="sm"
                             variant="outline"
+                            className="flex-1 sm:flex-none"
                           >
                             <Edit2 size={14} />
+                            <span className="sm:hidden ml-1">Edit</span>
                           </Button>
 
                           <Button
                             onClick={() => handleDeleteAddress(address._id!)}
                             size="sm"
                             variant="destructive"
+                            className="flex-1 sm:flex-none"
                           >
                             <Trash2 size={14} />
+                            <span className="sm:hidden ml-1">Delete</span>
                           </Button>
                         </div>
                       </div>

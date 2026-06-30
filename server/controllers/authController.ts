@@ -193,7 +193,7 @@ export const logout = (req: Request, res: Response) => {
 
 export const updateProfile = async (req: AuthRequest, res: Response) => {
   try {
-    const { username, mobile } = req.body;
+    const { username } = req.body;
 
     const user = await User.findById(req.userId);
 
@@ -203,17 +203,12 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    // Email changes are now handled through OTP verification endpoint
-    // This prevents direct email updates without verification
-
     user.username = username || user.username;
-    user.mobile = mobile || user.mobile;
 
     await user.save();
 
     res.status(200).json({
-      message:
-        "Profile updated successfully. Note: Email changes require OTP verification.",
+      message: "Profile updated successfully.",
       user: {
         _id: user._id,
         username: user.username,

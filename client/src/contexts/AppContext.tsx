@@ -137,7 +137,7 @@ interface AppContextType {
   verifyOTPEmailChange: (newEmail: string, otp: string) => Promise<void>;
   sendOTPMobileChange: (newMobile: string) => Promise<void>;
   verifyOTPMobileChange: (newMobile: string, otp: string) => Promise<void>;
-  updateProfile: (username: string, mobile: string) => Promise<void>;
+  updateProfile: (username: string) => Promise<void>;
 
   // Address Functions
   addresses: Address[];
@@ -767,36 +767,38 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const updateProfile = useCallback(
-    async (username: string, mobile: string) => {
-      setLoading(true);
-      try {
-        const response = await api("/api/auth/profile", {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({ username, mobile }),
-        });
+  async (username: string) => {
+    setLoading(true);
 
-        const data = await response.json();
+    try {
+      const response = await api("/api/auth/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ username }),
+      });
 
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to update profile");
-        }
+      const data = await response.json();
 
-        setUser(data.user);
-
-        toast.success("Profile updated successfully!");
-      } catch (error: any) {
-        toast.error(error.message || "Failed to update profile");
-        throw error;
-      } finally {
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update profile");
       }
-    },
-    [accessToken],
-  );
+
+      setUser(data.user);
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      toast.success("Profile updated successfully!");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to update profile");
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  },
+  [accessToken],
+);
 
   // ========== ADDRESS FUNCTIONS ==========
 

@@ -27,10 +27,7 @@ import {
 
 import { protect } from "server/middleware/authMiddleware.js";
 
-import {
-  authLimiter,
-  refreshLimiter,
-} from "server/middleware/rateLimiter.js";
+import { authLimiter, refreshLimiter } from "server/middleware/rateLimiter.js";
 
 const router = express.Router();
 
