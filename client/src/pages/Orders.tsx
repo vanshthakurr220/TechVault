@@ -20,6 +20,7 @@ import autoTable from "jspdf-autotable";
 import { SITE_CONFIG } from "@/config/siteConfig";
 import { useApp } from "@/contexts/AppContext";
 import { cn } from "@/lib/utils";
+import Loader from "@/components/Loader";
 
 interface Order {
   _id: string;
@@ -369,12 +370,7 @@ export default function Orders() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-muted-foreground animate-pulse">
-          Retrieving your orders...
-        </p>
-      </div>
+      <Loader text="Retrieving orders..." variant="page" />
     );
   }
 

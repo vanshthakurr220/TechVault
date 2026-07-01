@@ -15,6 +15,7 @@ import {
 import Swal from "sweetalert2";
 import { useLocation } from "wouter";
 import { useApp } from "@/contexts/AppContext";
+import Loader from "@/components/Loader";
 
 interface OrderItem {
   productId: {
@@ -447,7 +448,7 @@ export default function ProfileWithOTP() {
                         onClick={() => setShowEmailChangeModal(true)}
                         size="sm"
                         variant="outline"
-                        className="whitespace-nowrap"
+                        className="whitespace-nowrap hover:bg-black hover:text-white hover:border-black"
                       >
                         Change Email
                       </Button>
@@ -474,7 +475,7 @@ export default function ProfileWithOTP() {
                         onClick={() => setShowMobileChangeModal(true)}
                         size="sm"
                         variant="outline"
-                        className="whitespace-nowrap"
+                        className="whitespace-nowrap hover:bg-black hover:text-white hover:border-black"
                       >
                         Change Mobile
                       </Button>
@@ -699,7 +700,11 @@ export default function ProfileWithOTP() {
                     )}
                   </div>
                   <Button type="submit" disabled={loading} className="w-full">
-                    {loading ? "Sending OTP..." : "Send OTP"}
+                    {loading ? (
+                      <Loader text="Sending OTP" variant="button" />
+                    ) : (
+                      "Send OTP"
+                    )}
                   </Button>
                 </form>
               ) : (
@@ -733,7 +738,11 @@ export default function ProfileWithOTP() {
                     disabled={loading || emailOtp.length !== 6}
                     className="w-full"
                   >
-                    {loading ? "Verifying..." : "Verify OTP"}
+                    {loading ? (
+                      <Loader text="Verifying" variant="button" />
+                    ) : (
+                      "Verify OTP"
+                    )}
                   </Button>
                   <Button
                     type="button"
@@ -815,7 +824,11 @@ export default function ProfileWithOTP() {
                   </div>
 
                   <Button type="submit" disabled={loading} className="w-full">
-                    {loading ? "Sending OTP..." : "Send OTP"}
+                    {loading ? (
+                      <Loader text="Sending OTP" variant="button" />
+                    ) : (
+                      "Send OTP"
+                    )}
                   </Button>
                 </form>
               ) : (

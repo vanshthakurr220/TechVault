@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { navigate } from "wouter/use-browser-location";
 import { useApp } from "@/contexts/AppContext";
 import { useRoute } from "wouter";
+import Loader from "@/components/Loader";
 import { Button } from "@/components/ui/button";
 import {
   Star,
@@ -216,17 +217,9 @@ export default function ProductDetail() {
     }
   };
 
-  if (loading)
-    return (
-      <div className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 rounded-full border-4 border-slate-200 border-t-primary animate-spin mx-auto mb-4"></div>
-          <p className="text-muted-foreground text-lg font-medium">
-            Loading product...
-          </p>
-        </div>
-      </div>
-    );
+  if (loading) {
+    return <Loader text="Loading product..." variant="page" />;
+  }
 
   if (!product)
     return (
@@ -678,10 +671,7 @@ export default function ProductDetail() {
             {/* RIGHT SIDE - REVIEWS */}
             <div className="lg:col-span-2">
               {reviewLoading ? (
-                <div className="text-center py-12">
-                  <div className="w-8 h-8 rounded-full border-4 border-slate-200 border-t-primary animate-spin mx-auto mb-4" />
-                  <p className="text-muted-foreground">Loading reviews...</p>
-                </div>
+                <Loader text="Loading reviews..." variant="section" />
               ) : reviews.length === 0 ? (
                 <div className="bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl p-12 text-center">
                   <p className="text-slate-600 text-lg font-medium">

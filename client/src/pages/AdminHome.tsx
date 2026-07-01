@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
-import { Users, Package, Mail, ShoppingBag, Heart, Star, TicketPercent } from "lucide-react";
+import {
+  Users,
+  Package,
+  Mail,
+  ShoppingBag,
+  Heart,
+  Star,
+  TicketPercent,
+} from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 
 import {
@@ -283,7 +291,11 @@ export default function AdminHome() {
           <NavCard to="/admin/wishlists" icon={<Heart />} title="Wishlists" />
 
           <NavCard to="/admin/reviews" icon={<Star />} title="Reviews" />
-          <NavCard to="/admin/coupons" icon={<TicketPercent size={24} />} title="Coupons" />
+          <NavCard
+            to="/admin/coupons"
+            icon={<TicketPercent size={24} />}
+            title="Coupons"
+          />
         </div>
       </div>
 

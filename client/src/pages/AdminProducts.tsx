@@ -20,6 +20,7 @@ import {
 import Swal from "sweetalert2";
 import { useApp } from "@/contexts/AppContext";
 import { PRODUCT_CATEGORIES } from "@/constants/productCategories";
+import Loader from "@/components/Loader";
 
 interface Product {
   _id: string;
@@ -262,11 +263,7 @@ export default function AdminProducts() {
   };
 
   if (loading) {
-    return (
-      <div className="mt-10 text-center">
-        <p className="text-muted-foreground">Loading products...</p>
-      </div>
-    );
+    return <Loader text="Loading Products" variant="button" />;
   }
 
   const editProduct = async (product: Product) => {

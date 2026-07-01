@@ -1,4 +1,3 @@
-import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "./pages/NotFound";
 import { Route, Switch } from "wouter";
@@ -17,7 +16,6 @@ import Cart from "./pages/Cart";
 import Orders from "./pages/Orders";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AdminHome from "./pages/AdminHome";
 import AdminUsers from "./pages/AdminUsers";
@@ -32,11 +30,11 @@ import AdminWishlists from "./pages/AdminWishlists";
 import AdminCoupons from "./pages/AdminCoupons";
 import ProtectedRoute from "./components/ProtectedRoute";
 import GuestRoute from "./components/GuestRoute";
+import { NotificationProvider } from "./components/Notification";
 
 function Router() {
   return (
     <div className="flex flex-col min-h-screen">
-      <ToastContainer position="top-right" autoClose={1000} />
       <Navbar />
       <main className="flex-1 pt-24">
         <Switch>
@@ -147,12 +145,13 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <AppProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </AppProvider>
+      <NotificationProvider>
+        <AppProvider>
+          <TooltipProvider>
+            <Router />
+          </TooltipProvider>
+        </AppProvider>
+      </NotificationProvider>
     </ErrorBoundary>
   );
 }

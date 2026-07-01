@@ -3,6 +3,7 @@ import { Mail, Lock, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useApp } from "@/contexts/AppContext";
 import { SITE_CONFIG } from "@/config/siteConfig";
+import Loader from "@/components/Loader";
 
 export default function Login() {
   const { login, loading } = useApp();
@@ -115,7 +116,11 @@ export default function Login() {
               disabled={loading}
               className="w-full bg-primary text-primary-foreground py-2 rounded-lg font-bold monospace hover:bg-primary/90 transition-colors duration-200 flex items-center justify-center gap-2 btn-active disabled:opacity-50"
             >
-              {loading ? "Logging in..." : "Sign In"}
+              {loading ? (
+                <Loader text="Logging in..." variant="button" />
+              ) : (
+                "Sign In"
+              )}
               <ArrowRight size={18} />
             </button>
           </form>

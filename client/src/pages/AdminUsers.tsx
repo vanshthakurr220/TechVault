@@ -11,6 +11,7 @@ import {
 import Swal from "sweetalert2";
 import { useApp } from "@/contexts/AppContext";
 import { Button } from "@/components/ui/button";
+import Loader from "@/components/Loader";
 
 interface User {
   _id: string;
@@ -186,11 +187,7 @@ export default function AdminUsers() {
     });
 
   if (loading) {
-    return (
-      <div className="mt-10 text-center">
-        <p className="text-muted-foreground">Loading users...</p>
-      </div>
-    );
+    return <Loader text="Loading Users" variant="page" />;
   }
 
   const renderUserCard = (user: User) => (

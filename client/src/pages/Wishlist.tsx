@@ -4,6 +4,8 @@ import { Trash2, ShoppingBag, ArrowRight, Heart } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { Link } from "wouter";
 import Swal from "sweetalert2";
+import Loader from "@/components/Loader";
+import { navigate } from "wouter/use-browser-location";
 
 interface WishlistItem {
   productId: {
@@ -63,22 +65,8 @@ export default function Wishlist() {
   const removeItem = async (productId: string) => {
     try {
       await removeFromWishlist(productId);
-
-      Swal.fire({
-        icon: "success",
-        title: "Removed",
-        text: "Item removed from wishlist",
-        timer: 1300,
-        showConfirmButton: false,
-      });
     } catch (err) {
       console.error(err);
-
-      Swal.fire({
-        icon: "error",
-        title: "Failed",
-        text: "Could not remove item",
-      });
     }
   };
 
@@ -102,14 +90,6 @@ export default function Wishlist() {
       }
 
       await addToCart(productId, 1);
-
-      Swal.fire({
-        icon: "success",
-        title: "Added To Cart",
-        text: `${productName} added to cart`,
-        timer: 1300,
-        showConfirmButton: false,
-      });
     } catch (error) {
       console.error(error);
 
@@ -145,11 +125,7 @@ export default function Wishlist() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        Loading wishlist...
-      </div>
-    );
+    return <Loader text="Loading wishlist..." variant="page" />;
   }
 
   return (
@@ -164,7 +140,8 @@ export default function Wishlist() {
             {items.map((item) => (
               <div
                 key={item._id}
-                className="flex gap-4 border p-4 rounded-lg hover:shadow-md transition-shadow"
+                onClick={() => navigate(`/product/${item.productId._id}`)}
+                className="flex flex-col sm:flex-row gap-4 border border-slate-200 bg-white p-4 rounded-2xl hover:shadow-lg hover:border-slate-300 transition-all duration-300 cursor-pointer"
               >
                 <img
                   src={
@@ -172,7 +149,7 @@ export default function Wishlist() {
                     item.productId.image ||
                     "/placeholder.png"
                   }
-                  className="w-20 h-20 rounded object-contain bg-slate-50 p-2"
+                  className="w-24 h-24 sm:w-20 sm:h-20 rounded-xl object-contain bg-slate-50 p-2 border"
                   alt={item.productId.name}
                 />
 
@@ -194,15 +171,17 @@ export default function Wishlist() {
                   )}
                 </div>
 
-                <div className="flex flex-col gap-2 justify-center">
+                <div className="flex flex-row sm:flex-col gap-2 justify-center sm:items-end">
                   <Button
                     disabled={!item.productId.inStock}
-                    onClick={() =>
+                    onClick={(e) => {
+                      e.stopPropagation();
+
                       addToCartFromWishlist(
                         item.productId._id,
                         item.productId.name,
-                      )
-                    }
+                      );
+                    }}
                     className="text-xs"
                     size="sm"
                   >
@@ -210,11 +189,17 @@ export default function Wishlist() {
                   </Button>
 
                   <button
-                    onClick={() => removeItem(item.productId._id)}
-                    className="text-red-500 hover:text-red-700 transition-colors"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+  onClick={(e) => {
+    e.stopPropagation();
+    removeItem(item.productId._id);
+  }}
+  className="flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-600 hover:bg-red-100 hover:border-red-300 transition-all duration-200"
+>
+  <Trash2 size={16} />
+  <span className="hidden sm:inline text-sm font-medium">
+    Remove
+  </span>
+</button>
                 </div>
               </div>
             ))}

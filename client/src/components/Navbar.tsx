@@ -281,7 +281,7 @@ export default function Navbar() {
                                 "w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl transition-colors text-sm font-bold",
                                 location === item.href
                                   ? "bg-primary/10 text-primary"
-                                  : "hover:bg-gray-700 text-slate-600 dark:text-slate-400",
+                                  : "hover:bg-gray-200 text-slate-600 dark:text-slate-400",
                               )}
                             >
                               <item.icon size={18} /> {item.label}
@@ -293,7 +293,7 @@ export default function Navbar() {
                               setIsUserDropdownOpen(false);
                               navigate("/");
                             }}
-                            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-amber-50 hover:bg-amber-600 dark:bg-amber-900/20 dark:hover:bg-amber-700 text-amber-600 dark:text-amber-400 text-sm font-bold transition-colors"
+                            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-amber-50 hover:bg-amber-200 dark:bg-amber-900/20 dark:hover:bg-amber-800/30 text-amber-600 dark:text-amber-400 text-sm font-bold transition-colors"
                           >
                             <ShieldCheck size={18} />
                             Exit Admin Panel
@@ -332,7 +332,7 @@ export default function Navbar() {
 
                       <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-rose-50 hover:bg-rose-600 dark:bg-rose-900/20 dark:hover:bg-rose-700 text-rose-600 dark:text-rose-400 text-sm font-bold transition-colors mt-2"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-rose-50 hover:bg-rose-300 dark:bg-rose-900/20 dark:hover:bg-rose-800/30 text-rose-600 dark:text-rose-400 text-sm font-bold transition-colors mt-2"
                       >
                         <LogOut size={18} />
                         Logout

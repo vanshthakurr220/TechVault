@@ -1,3 +1,4 @@
+import { useNotification } from "@/components/Notification";
 import { api } from "@/lib/api";
 import React, {
   createContext,
@@ -7,7 +8,6 @@ import React, {
   ReactNode,
   useCallback,
 } from "react";
-import { toast } from "react-toastify";
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -261,6 +261,7 @@ const AppContext = createContext<AppContextType | null>(null);
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const switchable = false;
+  const notify = useNotification();
 
   // ========== USER & AUTH STATE ==========
   const [userLoggedIn, setUserLoggedIn] = useState(false);
@@ -419,9 +420,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
       setUser(data.user);
       setUserLoggedIn(true);
-      toast.success("Login successful!");
+      notify.success("Login successful!");
     } catch (error: any) {
-      toast.error(error.message || "Login failed");
+      notify.error(error.message || "Login failed");
       throw error;
     } finally {
       setLoading(false);
@@ -494,9 +495,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setUser(data.user);
         setUserLoggedIn(true);
 
-        toast.success("Account created successfully!");
+        notify.success("Account created successfully!");
       } catch (error: any) {
-        toast.error(error.message || "Signup failed");
+        notify.error(error.message || "Signup failed");
         throw error;
       } finally {
         setLoading(false);
@@ -526,7 +527,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setAddresses([]);
     setOrders([]);
 
-    toast.success("Logged out successfully! See you soon 👋");
+    notify.success("Logged out successfully! See you soon 👋");
   }, []);
 
   const sendOTPSignup = useCallback(async (email: string) => {
@@ -544,9 +545,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(data.message || "Failed to send OTP");
       }
 
-      toast.success("OTP sent to your email!");
+      notify.success("OTP sent to your email!");
     } catch (error: any) {
-      toast.error(error.message || "Failed to send OTP");
+      notify.error(error.message || "Failed to send OTP");
       throw error;
     } finally {
       setLoading(false);
@@ -568,9 +569,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(data.message || "OTP verification failed");
       }
 
-      toast.success("Email verified successfully!");
+      notify.success("Email verified successfully!");
     } catch (error: any) {
-      toast.error(error.message || "OTP verification failed");
+      notify.error(error.message || "OTP verification failed");
       throw error;
     } finally {
       setLoading(false);
@@ -595,9 +596,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(data.message || "Failed to send mobile OTP");
       }
 
-      toast.success("OTP sent to your mobile!");
+      notify.success("OTP sent to your mobile!");
     } catch (error: any) {
-      toast.error(error.message || "Failed to send mobile OTP");
+      notify.error(error.message || "Failed to send mobile OTP");
       throw error;
     } finally {
       setLoading(false);
@@ -626,9 +627,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           throw new Error(data.message || "OTP verification failed");
         }
 
-        toast.success("Mobile verified successfully!");
+        notify.success("Mobile verified successfully!");
       } catch (error: any) {
-        toast.error(error.message || "OTP verification failed");
+        notify.error(error.message || "OTP verification failed");
         throw error;
       } finally {
         setLoading(false);
@@ -656,9 +657,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           throw new Error(data.message || "Failed to send OTP");
         }
 
-        toast.success("OTP sent to your new email!");
+        notify.success("OTP sent to your new email!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to send OTP");
+        notify.error(error.message || "Failed to send OTP");
         throw error;
       } finally {
         setLoading(false);
@@ -688,9 +689,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         setUser(data.user);
 
-        toast.success("Email updated successfully!");
+        notify.success("Email updated successfully!");
       } catch (error: any) {
-        toast.error(error.message || "Email verification failed");
+        notify.error(error.message || "Email verification failed");
         throw error;
       } finally {
         setLoading(false);
@@ -719,9 +720,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           throw new Error(data.message || "Failed to send OTP");
         }
 
-        toast.success("OTP sent to your new mobile number!");
+        notify.success("OTP sent to your new mobile number!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to send OTP");
+        notify.error(error.message || "Failed to send OTP");
         throw error;
       } finally {
         setLoading(false);
@@ -755,9 +756,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         setUser(data.user);
 
-        toast.success("Mobile number updated successfully!");
+        notify.success("Mobile number updated successfully!");
       } catch (error: any) {
-        toast.error(error.message || "Mobile verification failed");
+        notify.error(error.message || "Mobile verification failed");
         throw error;
       } finally {
         setLoading(false);
@@ -767,38 +768,38 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const updateProfile = useCallback(
-  async (username: string) => {
-    setLoading(true);
+    async (username: string) => {
+      setLoading(true);
 
-    try {
-      const response = await api("/api/auth/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({ username }),
-      });
+      try {
+        const response = await api("/api/auth/profile", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ username }),
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to update profile");
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to update profile");
+        }
+
+        setUser(data.user);
+        localStorage.setItem("user", JSON.stringify(data.user));
+
+        notify.success("Profile updated successfully!");
+      } catch (error: any) {
+        notify.error(error.message || "Failed to update profile");
+        throw error;
+      } finally {
+        setLoading(false);
       }
-
-      setUser(data.user);
-      localStorage.setItem("user", JSON.stringify(data.user));
-
-      toast.success("Profile updated successfully!");
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update profile");
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  },
-  [accessToken],
-);
+    },
+    [accessToken],
+  );
 
   // ========== ADDRESS FUNCTIONS ==========
 
@@ -843,9 +844,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
 
         setAddresses(data.addresses || []);
-        toast.success("Address added successfully!");
+        notify.success("Address added successfully!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to add address");
+        notify.error(error.message || "Failed to add address");
         throw error;
       } finally {
         setLoading(false);
@@ -881,9 +882,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         setAddresses(data.addresses || []);
 
-        toast.success("Address updated successfully!");
+        notify.success("Address updated successfully!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to update address");
+        notify.error(error.message || "Failed to update address");
         throw error;
       } finally {
         setLoading(false);
@@ -913,9 +914,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
 
         setAddresses(data.addresses || []);
-        toast.success("Address deleted successfully!");
+        notify.success("Address deleted successfully!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to delete address");
+        notify.error(error.message || "Failed to delete address");
         throw error;
       } finally {
         setLoading(false);
@@ -945,9 +946,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
 
         setAddresses(data.addresses || []);
-        toast.success("Default address updated!");
+        notify.success("Default address updated!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to set default address");
+        notify.error(error.message || "Failed to set default address");
         throw error;
       }
     },
@@ -1016,7 +1017,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const addToCart = useCallback(
     async (productId: string, quantity: number) => {
       if (!user?.email) {
-        toast.error("Please login to add items to cart");
+        notify.error("Please login to add items to cart");
         return;
       }
 
@@ -1036,9 +1037,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         await fetchCartCount();
         await fetchCart();
-        toast.success("Item added to cart!");
+        notify.success("Item added to cart!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to add to cart");
+        notify.error(error.message || "Failed to add to cart");
         throw error;
       } finally {
         setLoading(false);
@@ -1072,7 +1073,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         await fetchCart();
         await fetchCartCount();
       } catch (error: any) {
-        toast.error(error.message || "Failed to update cart");
+        notify.error(error.message || "Failed to update cart");
         throw error;
       }
     },
@@ -1103,9 +1104,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         );
         await fetchCart();
         await fetchCartCount();
-        toast.success("Item removed from cart!");
+        notify.success("Item removed from cart!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to remove from cart");
+        notify.error(error.message || "Failed to remove from cart");
         throw error;
       }
     },
@@ -1127,7 +1128,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       setCartItems([]);
       setCartCount(0);
     } catch (error: any) {
-      toast.error(error.message || "Failed to clear cart");
+      notify.error(error.message || "Failed to clear cart");
       throw error;
     }
   }, [user?.email]);
@@ -1191,7 +1192,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const addToWishlist = useCallback(
     async (productId: string) => {
       if (!user?.email) {
-        toast.error("Please login to add items to wishlist");
+        notify.error("Please login to add items to wishlist");
         return;
       }
 
@@ -1208,9 +1209,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         await fetchWishlistCount();
         await fetchWishlistItems();
-        toast.success("Item added to wishlist!");
+        notify.success("Item added to wishlist!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to add to wishlist");
+        notify.error(error.message || "Failed to add to wishlist");
         throw error;
       }
     },
@@ -1235,9 +1236,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
         await fetchWishlistCount();
         await fetchWishlistItems();
-        toast.success("Item removed from wishlist!");
+        notify.success("Item removed from wishlist!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to remove from wishlist");
+        notify.error(error.message || "Failed to remove from wishlist");
         throw error;
       }
     },
@@ -1321,7 +1322,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       couponDiscount: number = 0,
     ) => {
       if (!user?.email) {
-        toast.error("Please login to place an order");
+        notify.error("Please login to place an order");
         return;
       }
 
@@ -1371,7 +1372,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         await clearCart();
         await fetchOrders();
 
-        toast.success("Order placed successfully!");
+        notify.success("Order placed successfully!");
 
         if (!response.ok) {
           throw new Error(data.message || "Failed to create order");
@@ -1383,7 +1384,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         await clearCart();
         await fetchOrders();
       } catch (error: any) {
-        toast.error(error.message || "Failed to create order");
+        notify.error(error.message || "Failed to create order");
         throw error;
       } finally {
         setLoading(false);
@@ -1408,7 +1409,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const submitReview = useCallback(
     async (productId: string, rating: number, comment: string) => {
       if (!user?.email) {
-        toast.error("Please login to submit a review");
+        notify.error("Please login to submit a review");
         return;
       }
 
@@ -1432,9 +1433,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
 
         await fetchProductReviews(productId);
-        toast.success("Review submitted successfully!");
+        notify.success("Review submitted successfully!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to submit review");
+        notify.error(error.message || "Failed to submit review");
         throw error;
       } finally {
         setLoading(false);
@@ -1461,9 +1462,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           throw new Error(data.message || "Failed to submit contact");
         }
 
-        toast.success("Message sent successfully!");
+        notify.success("Message sent successfully!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to submit contact");
+        notify.error(error.message || "Failed to submit contact");
         throw error;
       } finally {
         setLoading(false);
@@ -1611,9 +1612,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
 
         await fetchAllUsers();
-        toast.success("User deleted successfully!");
+        notify.success("User deleted successfully!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to delete user");
+        notify.error(error.message || "Failed to delete user");
         throw error;
       }
     },
@@ -1632,9 +1633,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
 
         await fetchAllUsers();
-        toast.success("User promoted to admin!");
+        notify.success("User promoted to admin!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to make admin");
+        notify.error(error.message || "Failed to make admin");
         throw error;
       }
     },
@@ -1653,9 +1654,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
 
         await fetchAllUsers();
-        toast.success("Admin privileges removed!");
+        notify.success("Admin privileges removed!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to remove admin");
+        notify.error(error.message || "Failed to remove admin");
         throw error;
       }
     },
@@ -1674,9 +1675,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
 
         await fetchAllContacts();
-        toast.success("Contact deleted!");
+        notify.success("Contact deleted!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to delete contact");
+        notify.error(error.message || "Failed to delete contact");
         throw error;
       }
     },
@@ -1720,9 +1721,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
 
         await fetchAllOrders();
-        toast.success("Order status updated!");
+        notify.success("Order status updated!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to update order status");
+        notify.error(error.message || "Failed to update order status");
         throw error;
       }
     },
@@ -1746,9 +1747,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
 
         await fetchAllOrders();
-        toast.success("Payment status updated!");
+        notify.success("Payment status updated!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to update payment status");
+        notify.error(error.message || "Failed to update payment status");
         throw error;
       }
     },
@@ -1767,9 +1768,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
 
         await fetchAllOrders();
-        toast.success("Order deleted!");
+        notify.success("Order deleted!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to delete order");
+        notify.error(error.message || "Failed to delete order");
         throw error;
       }
     },
@@ -1802,10 +1803,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.message);
 
-        toast.success("Product added successfully!");
+        notify.success("Product added successfully!");
         await fetchAdminProducts();
       } catch (error: any) {
-        toast.error(error.message);
+        notify.error(error.message);
         throw error;
       } finally {
         setAddingProduct(false);
@@ -1836,10 +1837,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.message);
 
-        toast.success("Product updated successfully!");
+        notify.success("Product updated successfully!");
         await fetchAdminProducts();
       } catch (error: any) {
-        toast.error(error.message);
+        notify.error(error.message);
         throw error;
       }
     },
@@ -1858,9 +1859,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
 
         await fetchAdminProducts(); // Updated to fetchAdminProducts
-        toast.success("Product deleted!");
+        notify.success("Product deleted!");
       } catch (error: any) {
-        toast.error(error.message || "Failed to delete product");
+        notify.error(error.message || "Failed to delete product");
         throw error;
       }
     },

@@ -12,6 +12,7 @@ import {
 import { navigate } from "wouter/use-browser-location";
 import { useApp } from "@/contexts/AppContext";
 import { SITE_CONFIG } from "@/config/siteConfig";
+import Loader from "@/components/Loader";
 
 type SignupStep = "email" | "emailOtp" | "mobile" | "mobileOtp" | "details";
 
@@ -235,7 +236,11 @@ export default function SignupWithOTP() {
                 disabled={loading || otp.length !== 6}
                 className="w-full bg-primary text-primary-foreground py-2 rounded-lg font-bold monospace hover:bg-primary/90 transition-colors duration-200 flex items-center justify-center gap-2 btn-active disabled:opacity-50"
               >
-                {loading ? "Verifying..." : "Verify OTP"}
+                {loading ? (
+                  <Loader text="Verifying" variant="button" />
+                ) : (
+                  "Verify OTP"
+                )}
                 <CheckCircle size={18} />
               </button>
 
@@ -402,7 +407,11 @@ export default function SignupWithOTP() {
                 disabled={loading || mobileOtp.length !== 6}
                 className="w-full bg-primary text-primary-foreground py-2 rounded-lg font-bold monospace hover:bg-primary/90 transition-colors duration-200 flex items-center justify-center gap-2 btn-active disabled:opacity-50"
               >
-                {loading ? "Verifying..." : "Verify Mobile OTP"}
+                {loading ? (
+                  <Loader text="Verifying Mobile OTP" variant="button" />
+                ) : (
+                  "Verify Mobile OTP"
+                )}
 
                 <CheckCircle size={18} />
               </button>

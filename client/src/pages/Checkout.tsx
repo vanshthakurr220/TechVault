@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { useApp } from "@/contexts/AppContext";
 import { toast } from "react-toastify";
+import Loader from "@/components/Loader";
 
 export default function Checkout() {
   const [couponCode, setCouponCode] = useState("");
@@ -393,7 +394,11 @@ export default function Checkout() {
                   onClick={() => applyCouponLogic(couponCode)}
                   disabled={couponLoading || !!appliedCoupon}
                 >
-                  {couponLoading ? "..." : "Apply"}
+                  {couponLoading ? (
+                    <Loader text="..." variant="button" />
+                  ) : (
+                    "Apply"
+                  )}
                 </Button>
               </div>
 
@@ -439,7 +444,11 @@ export default function Checkout() {
               className="w-full mt-8 py-6 text-lg"
               onClick={placeOrder}
             >
-              {loading ? "Processing..." : "Confirm Order"}
+              {loading ? (
+                <Loader text="Processing..." variant="button" />
+              ) : (
+                "Confirm Order"
+              )}
             </Button>
 
             <p className="text-[10px] text-center text-muted-foreground mt-4 uppercase tracking-wider">

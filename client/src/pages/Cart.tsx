@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { Link } from "wouter";
+import Loader from "@/components/Loader";
+import { navigate } from "wouter/use-browser-location";
 
 interface CartItem {
   productId: {
@@ -135,20 +137,11 @@ export default function Cart() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 rounded-full border-4 border-slate-200 border-t-primary animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600 text-lg font-medium">
-            Loading your cart...
-          </p>
-        </div>
-      </div>
-    );
+    return <Loader text="Loading Your Cart" variant="page" />;
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-12">
+    <div className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100 py-12">
       {/* Header */}
       <div className="border-b border-slate-200 bg-white/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
@@ -169,60 +162,62 @@ export default function Cart() {
             {items.map((item) => (
               <div
                 key={item._id}
-                className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-all"
+                onClick={() => navigate(`/product/${item.productId._id}`)}
+                className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-xl hover:border-slate-300 transition-all duration-300 cursor-pointer"
               >
-                <div className="flex gap-6 p-6">
+                <div className="flex flex-col sm:flex-row gap-5 p-4 sm:p-6">
                   {/* Product Image */}
-                  <div className="flex-shrink-0">
+                  <div className="w-full sm:w-32 flex-shrink-0">
                     <img
-                      src={item.productId.images[0]}
+                      src={item.productId.images?.[0] || "/placeholder.png"}
                       alt={item.productId.name}
-                      className="w-32 h-32 rounded-xl object-cover bg-slate-100 shadow-sm"
+                      className="w-full h-48 sm:w-32 sm:h-32 rounded-xl object-contain bg-slate-50 border p-3 shadow-sm"
                     />
                   </div>
 
                   {/* Product Details */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="font-bold text-lg text-slate-900 mb-1">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-base sm:text-lg text-slate-900 leading-6 line-clamp-2">
                           {item.productId.name}
                         </h3>
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded">
+
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full">
                             {item.productId.brand}
                           </span>
-                          <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded">
+
+                          <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full">
                             {item.productId.category}
                           </span>
+
                           {item.productId.model && (
-                            <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded">
+                            <span className="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full">
                               {item.productId.model}
                             </span>
                           )}
                         </div>
                       </div>
-                      <button
-                        onClick={() => removeItem(item.productId._id)}
-                        className="p-2 hover:bg-red-50 rounded-lg transition-colors text-red-500 hover:text-red-600"
-                        title="Remove from cart"
-                      >
-                        <Trash2 size={20} />
-                      </button>
                     </div>
 
-                    {/* Price and Stock Info */}
-                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-100">
+                    {/* Price */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4 border-y border-slate-100">
                       <div>
+                        <p className="text-xs text-slate-500 font-medium mb-1">
+                          Price
+                        </p>
                         <p className="text-2xl font-bold text-primary">
                           ₹{item.productId.price.toLocaleString()}
                         </p>
-                        <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded inline-block mt-1">
+
+                        <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full inline-block mt-2">
                           ✓ In Stock
                         </span>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm text-slate-600 mb-1">
+
+                      <div className="sm:text-right">
+                        <p className="text-xs text-slate-500 font-medium mb-1">
                           Item Total
                         </p>
                         <p className="text-2xl font-bold text-slate-900">
@@ -234,40 +229,57 @@ export default function Cart() {
                       </div>
                     </div>
 
-                    {/* Quantity Controls */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-slate-700">
-                        Quantity
-                      </span>
-                      <div className="flex items-center border border-slate-300 rounded-lg bg-slate-50">
-                        <button
-                          onClick={() =>
-                            updateQuantity(
-                              item.productId._id,
-                              item.quantity - 1,
-                            )
-                          }
-                          className="p-2 hover:bg-slate-100 transition-colors text-slate-600"
-                          title="Decrease quantity"
-                        >
-                          <Minus size={18} />
-                        </button>
-                        <span className="px-6 py-2 font-bold text-slate-900 min-w-16 text-center">
-                          {item.quantity}
+                    {/* Quantity */}
+                    {/* Quantity + Remove */}
+                    <div className="mt-4 grid grid-cols-1 sm:grid-cols-[220px_1fr] gap-3 items-end">
+                      <div>
+                        <span className="mb-2 block text-sm font-semibold text-slate-700">
+                          Quantity
                         </span>
-                        <button
-                          onClick={() =>
-                            updateQuantity(
-                              item.productId._id,
-                              item.quantity + 1,
-                            )
-                          }
-                          className="p-2 hover:bg-slate-100 transition-colors text-slate-600"
-                          title="Increase quantity"
-                        >
-                          <Plus size={18} />
-                        </button>
+
+                        <div className="flex h-12 items-center justify-between rounded-xl border border-slate-300 bg-slate-50 overflow-hidden">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateQuantity(
+                                item.productId._id,
+                                item.quantity - 1,
+                              );
+                            }}
+                            className="h-full w-12 flex items-center justify-center hover:bg-slate-100 text-slate-600 transition-colors"
+                          >
+                            <Minus size={18} />
+                          </button>
+
+                          <span className="flex-1 text-center font-bold text-slate-900">
+                            {item.quantity}
+                          </span>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateQuantity(
+                                item.productId._id,
+                                item.quantity + 1,
+                              );
+                            }}
+                            className="h-full w-12 flex items-center justify-center hover:bg-slate-100 text-slate-600 transition-colors"
+                          >
+                            <Plus size={18} />
+                          </button>
+                        </div>
                       </div>
+
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeItem(item.productId._id);
+                        }}
+                        className="h-12 w-full flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 text-sm font-semibold text-red-600 transition-all duration-200 hover:bg-red-100 hover:border-red-300 active:scale-[0.98]"
+                      >
+                        <Trash2 size={18} />
+                        Remove from Cart
+                      </button>
                     </div>
                   </div>
                 </div>

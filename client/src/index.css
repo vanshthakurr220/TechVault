@@ -349,14 +349,3 @@
   }
 }
 
-/* Make button text white on hover */
-@layer base {
-
-  button:hover:not(:disabled),
-  [role="button"]:hover:not([aria-disabled="true"]),
-  [type="button"]:hover:not(:disabled),
-  [type="submit"]:hover:not(:disabled),
-  [type="reset"]:hover:not(:disabled) {
-    color: white !important;
-  }
-}

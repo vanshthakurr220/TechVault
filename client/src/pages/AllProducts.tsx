@@ -4,6 +4,7 @@ import { Star, ShoppingCart, Zap, Heart, Search } from "lucide-react";
 import Swal from "sweetalert2";
 import { useApp } from "@/contexts/AppContext";
 import { navigate } from "wouter/use-browser-location";
+import Loader from "@/components/Loader";
 
 export default function AllProducts() {
   const {
@@ -25,9 +26,15 @@ export default function AllProducts() {
   const [maxPrice, setMaxPrice] = useState(200000);
   const [searchQuery, setSearchQuery] = useState("");
 
+  const safeProducts = useMemo(() => {
+    if (Array.isArray(products)) return products;
+    return [];
+  }, [products]);
+
   const categories = useMemo(
-    () => [...new Set(products.map((p) => p.category))].filter(Boolean).sort(),
-    [products],
+    () =>
+      [...new Set(safeProducts.map((p) => p.category))].filter(Boolean).sort(),
+    [safeProducts],
   );
 
   const handleCategoryChange = (category: string) => {
@@ -127,7 +134,7 @@ export default function AllProducts() {
   };
 
   const filteredProducts = useMemo(() => {
-    let filtered = [...products];
+    let filtered = [...safeProducts];
 
     if (searchQuery) {
       filtered = filtered.filter(
@@ -157,14 +164,17 @@ export default function AllProducts() {
     }
 
     return filtered;
-  }, [products, searchQuery, selectedCategories, sortBy, minPrice, maxPrice]);
+  }, [
+    safeProducts,
+    searchQuery,
+    selectedCategories,
+    sortBy,
+    minPrice,
+    maxPrice,
+  ]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-lg">Loading products...</p>
-      </div>
-    );
+    return <Loader text="Loading products..." variant="page" />;
   }
 
   const buyNow = async (product: any) => {
