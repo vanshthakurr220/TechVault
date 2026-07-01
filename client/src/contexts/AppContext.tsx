@@ -338,10 +338,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const data = await response.json();
         if (data.success) {
           await fetchCoupons();
+          notify.success("Coupon created successfully!");
         }
         return data;
       } catch (error) {
         console.error(error);
+        notify.error("Failed to create coupon.");
       }
     },
     [fetchCoupons],
@@ -358,10 +360,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const data = await response.json();
         if (data.success) {
           await fetchCoupons();
+          notify.success("Coupon updated successfully!");
         }
         return data;
       } catch (error) {
         console.error(error);
+        notify.error("Failed to update coupon.");
       }
     },
     [fetchCoupons],
@@ -376,10 +380,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const data = await response.json();
         if (data.success) {
           await fetchCoupons();
+          notify.success("Coupon deleted successfully!");
         }
         return data;
       } catch (error) {
         console.error(error);
+        notify.error("Failed to delete coupon.");
       }
     },
     [fetchCoupons],
@@ -393,8 +399,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         body: JSON.stringify({ code, subtotal }),
       });
       return await response.json();
+      notify.success("Coupon validated successfully!");
     } catch (error) {
       console.error(error);
+      notify.error("Failed to validate coupon.");
     }
   }, []);
 

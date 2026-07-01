@@ -349,7 +349,7 @@ export default function AdminContacts() {
               </Button>
               <Button
                 variant="outline"
-                className="rounded-xl flex-1 h-11 font-bold"
+                className="rounded-xl flex-1 h-11 font-bold border-slate-300 text-slate-700 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all duration-200"
                 onClick={() => setSelectedMessage(null)}
               >
                 Close

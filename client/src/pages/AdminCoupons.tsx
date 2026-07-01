@@ -46,92 +46,170 @@ export default function AdminCoupons() {
     });
 
     if (response?.success) {
-      Swal.fire({
-        icon: "success",
-        title: "Updated",
-        timer: 1200,
-        showConfirmButton: false,
-      });
     }
   };
 
   const addCoupon = async () => {
+    const isMobile = window.innerWidth < 640;
+
     const result = await Swal.fire({
       title: "Create Coupon",
-      width: "450px",
+      width: isMobile ? "95%" : "540px",
+      padding: isMobile ? "1rem" : "1.5rem",
+      customClass: {
+        popup: "rounded-3xl",
+        title: "text-xl font-bold",
+      },
 
       html: `
-      <div style="text-align:left">
+      <div style="
+        display:flex;
+        flex-direction:column;
+        gap:14px;
+        text-align:left;
+        width:100%;
+      ">
 
-        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#374151;">
-          Coupon Code
-        </label>
-        <input
-          id="code"
-          class="swal2-input"
-          placeholder="SAVE10"
-          style="margin-top:0;"
-        />
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#374151;">
+            Coupon Code
+          </label>
 
-        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#374151;">
-          Discount Percentage
-        </label>
-        <input
-          id="discountPercentage"
-          type="number"
-          class="swal2-input"
-          placeholder="10"
-          style="margin-top:0;"
-        />
+          <input
+            id="code"
+            class="swal2-input"
+            placeholder="SAVE10"
+            style="
+              width:100%;
+              margin:6px 0 0;
+              box-sizing:border-box;
+              height:46px;
+              border-radius:12px;
+            "
+          />
+        </div>
 
-        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#374151;">
-          Minimum Order Amount
-        </label>
-        <input
-          id="minOrderAmount"
-          type="number"
-          class="swal2-input"
-          placeholder="1000"
-          style="margin-top:0;"
-        />
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#374151;">
+            Discount Percentage
+          </label>
 
-        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#374151;">
-          Maximum Discount
-        </label>
-        <input
-          id="maxDiscount"
-          type="number"
-          class="swal2-input"
-          placeholder="500"
-          style="margin-top:0;"
-        />
+          <input
+            id="discountPercentage"
+            type="number"
+            class="swal2-input"
+            placeholder="10"
+            style="
+              width:100%;
+              margin:6px 0 0;
+              box-sizing:border-box;
+              height:46px;
+              border-radius:12px;
+            "
+          />
+        </div>
 
-        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#374151;">
-          Usage Limit
-        </label>
-        <input
-          id="usageLimit"
-          type="number"
-          class="swal2-input"
-          placeholder="100"
-          style="margin-top:0;"
-        />
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#374151;">
+            Minimum Order Amount
+          </label>
 
-        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#374151;">
-          Expiry Date
-        </label>
-        <input
-          id="expiryDate"
-          type="date"
-          class="swal2-input"
-          style="margin-top:0;"
-        />
+          <input
+            id="minOrderAmount"
+            type="number"
+            class="swal2-input"
+            placeholder="1000"
+            style="
+              width:100%;
+              margin:6px 0 0;
+              box-sizing:border-box;
+              height:46px;
+              border-radius:12px;
+            "
+          />
+        </div>
+
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#374151;">
+            Maximum Discount
+          </label>
+
+          <input
+            id="maxDiscount"
+            type="number"
+            class="swal2-input"
+            placeholder="500"
+            style="
+              width:100%;
+              margin:6px 0 0;
+              box-sizing:border-box;
+              height:46px;
+              border-radius:12px;
+            "
+          />
+        </div>
+
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#374151;">
+            Usage Limit
+          </label>
+
+          <input
+            id="usageLimit"
+            type="number"
+            class="swal2-input"
+            placeholder="100"
+            style="
+              width:100%;
+              margin:6px 0 0;
+              box-sizing:border-box;
+              height:46px;
+              border-radius:12px;
+            "
+          />
+        </div>
+
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#374151;">
+            Expiry Date
+          </label>
+
+          <input
+            id="expiryDate"
+            type="date"
+            class="swal2-input"
+            style="
+              width:100%;
+              margin:6px 0 0;
+              box-sizing:border-box;
+              height:46px;
+              border-radius:12px;
+            "
+          />
+        </div>
 
       </div>
     `,
 
       showCancelButton: true,
       confirmButtonText: "Create Coupon",
+      cancelButtonText: "Cancel",
+
+      didOpen: () => {
+        if (isMobile) {
+          const actions = document.querySelector(".swal2-actions");
+
+          if (actions instanceof HTMLElement) {
+            actions.style.flexDirection = "column";
+            actions.style.width = "100%";
+            actions.style.gap = "10px";
+
+            actions.querySelectorAll("button").forEach((btn) => {
+              (btn as HTMLElement).style.width = "100%";
+            });
+          }
+        }
+      },
 
       preConfirm: () => ({
         code: (
@@ -166,26 +244,10 @@ export default function AdminCoupons() {
       const response = await createCoupon(result.value);
 
       if (response?.success) {
-        Swal.fire({
-          icon: "success",
-          title: "Created",
-          text: "Coupon created successfully",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "Failed",
-          text: response?.message || "Could not create coupon",
-        });
+        await fetchCoupons();
       }
-    } catch {
-      Swal.fire({
-        icon: "error",
-        title: "Failed",
-        text: "Something went wrong",
-      });
+    } catch (error) {
+      console.error(error);
     }
   };
 
@@ -207,27 +269,9 @@ export default function AdminCoupons() {
       const response = await deleteCoupon(couponId);
 
       if (response?.success) {
-        Swal.fire({
-          icon: "success",
-          title: "Deleted",
-          text: "Coupon deleted successfully",
-          timer: 1500,
-          showConfirmButton: false,
-        });
       } else {
-        Swal.fire({
-          icon: "error",
-          title: "Failed",
-          text: response?.message || "Could not delete coupon",
-        });
       }
-    } catch {
-      Swal.fire({
-        icon: "error",
-        title: "Failed",
-        text: "Something went wrong",
-      });
-    }
+    } catch {}
   };
 
   const loadCoupons = async () => {
@@ -244,81 +288,103 @@ export default function AdminCoupons() {
   const editCoupon = async (coupon: Coupon) => {
     const result = await Swal.fire({
       title: "Edit Coupon",
-      width: "500px",
+      width: window.innerWidth < 640 ? "95%" : "500px",
+      padding: "1.2rem",
+      customClass: {
+        popup: "rounded-3xl",
+        title: "text-xl",
+      },
 
       html: `
-  <div style="text-align:left">
+      <div style="
+        text-align:left;
+        display:flex;
+        flex-direction:column;
+        gap:12px;
+        width:100%;
+        overflow-x:hidden;
+      ">
+        ${[
+          ["code", "Coupon Code", coupon.code, "text"],
+          [
+            "discountPercentage",
+            "Discount Percentage",
+            coupon.discountPercentage ?? "",
+            "number",
+          ],
+          [
+            "minOrderAmount",
+            "Minimum Order Amount",
+            coupon.minOrderAmount,
+            "number",
+          ],
+          [
+            "maxDiscount",
+            "Maximum Discount",
+            coupon.maxDiscount || "",
+            "number",
+          ],
+          ["usageLimit", "Usage Limit", coupon.usageLimit, "number"],
+          [
+            "expiryDate",
+            "Expiry Date",
+            new Date(coupon.expiryDate).toISOString().split("T")[0],
+            "date",
+          ],
+        ]
+          .map(
+            ([id, label, value, type]) => `
+              <div>
+                <label style="
+                  display:block;
+                  font-size:13px;
+                  font-weight:600;
+                  margin-bottom:2px;
+                  color:#374151;
+                ">
+                  ${label}
+                </label>
 
-    <label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#374151;">
-      Coupon Code
-    </label>
-    <input
-      id="code"
-      class="swal2-input"
-      value="${coupon.code}"
-      style="margin-top:0;"
-    />
-
-    <label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#374151;">
-      Discount Percentage
-    </label>
-    <input
-      id="discountPercentage"
-      type="number"
-      class="swal2-input"
-      value="${coupon.discountPercentage}"
-      style="margin-top:0;"
-    />
-
-    <label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#374151;">
-      Minimum Order Amount
-    </label>
-    <input
-      id="minOrderAmount"
-      type="number"
-      class="swal2-input"
-      value="${coupon.minOrderAmount}"
-      style="margin-top:0;"
-    />
-
-    <label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#374151;">
-      Maximum Discount
-    </label>
-    <input
-      id="maxDiscount"
-      type="number"
-      class="swal2-input"
-      value="${coupon.maxDiscount || ""}"
-      style="margin-top:0;"
-    />
-
-    <label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#374151;">
-      Usage Limit
-    </label>
-    <input
-      id="usageLimit"
-      type="number"
-      class="swal2-input"
-      value="${coupon.usageLimit}"
-      style="margin-top:0;"
-    />
-
-    <label style="display:block;font-size:13px;font-weight:600;margin-bottom:4px;color:#374151;">
-      Expiry Date
-    </label>
-    <input
-      id="expiryDate"
-      type="date"
-      class="swal2-input"
-      value="${new Date(coupon.expiryDate).toISOString().split("T")[0]}"
-      style="margin-top:0;"
-    />
-
-  </div>
-`,
+                <input
+                  id="${id}"
+                  type="${type}"
+                  class="swal2-input"
+                  value="${value}"
+                  style="
+                    width:100%;
+                    margin:0;
+                    box-sizing:border-box;
+                    height:44px;
+                    border-radius:12px;
+                    font-size:14px;
+                  "
+                />
+              </div>
+            `,
+          )
+          .join("")}
+      </div>
+    `,
 
       showCancelButton: true,
       confirmButtonText: "Update Coupon",
+      cancelButtonText: "Cancel",
+
+      didOpen: () => {
+        if (window.innerWidth < 640) {
+          const actions = document.querySelector(".swal2-actions");
+
+          if (actions instanceof HTMLElement) {
+            actions.style.flexDirection = "column";
+            actions.style.width = "100%";
+            actions.style.gap = "10px";
+
+            actions.querySelectorAll("button").forEach((btn) => {
+              (btn as HTMLElement).style.width = "100%";
+            });
+          }
+        }
+      },
 
       preConfirm: () => ({
         code: (
@@ -353,26 +419,10 @@ export default function AdminCoupons() {
       const response = await updateCoupon(coupon._id, result.value);
 
       if (response?.success) {
-        Swal.fire({
-          icon: "success",
-          title: "Updated",
-          text: "Coupon updated successfully",
-          timer: 1500,
-          showConfirmButton: false,
-        });
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "Failed",
-          text: response?.message || "Could not update coupon",
-        });
+        await fetchCoupons();
       }
-    } catch {
-      Swal.fire({
-        icon: "error",
-        title: "Failed",
-        text: "Something went wrong",
-      });
+    } catch (error) {
+      console.error(error);
     }
   };
 
@@ -429,7 +479,7 @@ export default function AdminCoupons() {
   return (
     <div className="animate-fade-in mt-8 px-4 md:px-6">
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-3xl font-bold">Manage Coupons</h2>
 
@@ -438,7 +488,7 @@ export default function AdminCoupons() {
           </p>
         </div>
 
-        <Button onClick={addCoupon} className="gap-2">
+        <Button onClick={addCoupon} className="gap-2 w-full sm:w-auto">
           <TicketPercent size={18} />
           Add Coupon
         </Button>
@@ -486,7 +536,7 @@ export default function AdminCoupons() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 w-full lg:w-auto">
             <div className="relative">
               <Search
                 size={16}
@@ -520,7 +570,7 @@ export default function AdminCoupons() {
               <option value="expired">Expired</option>
             </select>
 
-            <div className="flex gap-2 border rounded-xl p-1 bg-slate-50">
+            <div className="hidden md:flex gap-2 border rounded-xl p-1 bg-slate-50">
               <Button
                 variant={viewMode === "card" ? "default" : "ghost"}
                 size="sm"
@@ -545,7 +595,7 @@ export default function AdminCoupons() {
         <div className="rounded-3xl border bg-white p-10 text-center">
           <p className="text-muted-foreground">No coupons found</p>
         </div>
-      ) : viewMode === "card" ? (
+      ) : viewMode === "card" || window.innerWidth < 768 ? (
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredCoupons.map((coupon: Coupon) => {
             const isExpired =
@@ -657,7 +707,15 @@ export default function AdminCoupons() {
                   <div className="mt-6 flex gap-2">
                     <Button
                       variant="outline"
-                      className="flex-1"
+                      className="
+    flex-1
+    border-slate-300
+    hover:bg-slate-900
+    hover:text-white
+    hover:border-slate-900
+    transition-all
+    duration-200
+  "
                       onClick={() => editCoupon(coupon)}
                     >
                       Edit
@@ -665,7 +723,16 @@ export default function AdminCoupons() {
 
                     <Button
                       variant="outline"
-                      className="flex-1 text-red-600"
+                      className="
+    flex-1
+    text-red-600
+    border-red-300
+    hover:bg-red-600
+    hover:text-white
+    hover:border-red-600
+    transition-all
+    duration-200
+  "
                       onClick={() => handleDeleteCoupon(coupon._id)}
                     >
                       Delete
@@ -742,17 +809,33 @@ export default function AdminCoupons() {
                     <td className="p-4">
                       <div className="flex justify-center gap-2">
                         <Button
-                          size="sm"
                           variant="outline"
+                          className="
+    flex-1
+    border-slate-300
+    hover:bg-slate-900
+    hover:text-white
+    hover:border-slate-900
+    transition-all
+    duration-200
+  "
                           onClick={() => editCoupon(coupon)}
                         >
                           Edit
                         </Button>
 
                         <Button
-                          size="sm"
                           variant="outline"
-                          className="text-red-600"
+                          className="
+    flex-1
+    text-red-600
+    border-red-300
+    hover:bg-red-600
+    hover:text-white
+    hover:border-red-600
+    transition-all
+    duration-200
+  "
                           onClick={() => handleDeleteCoupon(coupon._id)}
                         >
                           Delete
