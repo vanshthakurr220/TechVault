@@ -138,6 +138,20 @@ interface AppContextType {
   sendOTPMobileChange: (newMobile: string) => Promise<void>;
   verifyOTPMobileChange: (newMobile: string, otp: string) => Promise<void>;
   updateProfile: (username: string) => Promise<void>;
+  changePassword: (
+    oldPassword: string,
+    newPassword: string,
+    confirmNewPassword: string,
+  ) => Promise<void>;
+
+  sendForgotPasswordOTP: (email: string) => Promise<void>;
+
+  resetPasswordWithOTP: (
+    email: string,
+    otp: string,
+    newPassword: string,
+    confirmNewPassword: string,
+  ) => Promise<void>;
 
   // Address Functions
   addresses: Address[];
@@ -476,6 +490,72 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  const sendForgotPasswordOTP = useCallback(async (email: string) => {
+    setLoading(true);
+
+    try {
+      const response = await api("/api/auth/forgot-password/send-otp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to send OTP");
+      }
+
+      notify.success(data.message);
+    } catch (error: any) {
+      notify.error(error.message || "Failed to send OTP");
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  const resetPasswordWithOTP = useCallback(
+    async (
+      email: string,
+      otp: string,
+      newPassword: string,
+      confirmNewPassword: string,
+    ) => {
+      setLoading(true);
+
+      try {
+        const response = await api("/api/auth/forgot-password/reset", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            otp,
+            newPassword,
+            confirmNewPassword,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to reset password");
+        }
+
+        notify.success(data.message);
+      } catch (error: any) {
+        notify.error(error.message || "Failed to reset password");
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
   const signup = useCallback(
     async (
       username: string,
@@ -801,6 +881,45 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         notify.success("Profile updated successfully!");
       } catch (error: any) {
         notify.error(error.message || "Failed to update profile");
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [accessToken],
+  );
+
+  const changePassword = useCallback(
+    async (
+      oldPassword: string,
+      newPassword: string,
+      confirmNewPassword: string,
+    ) => {
+      setLoading(true);
+
+      try {
+        const response = await api("/api/auth/change-password", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            oldPassword,
+            newPassword,
+            confirmNewPassword,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to change password");
+        }
+
+        notify.success("Password changed successfully!");
+      } catch (error: any) {
+        notify.error(error.message || "Failed to change password");
         throw error;
       } finally {
         setLoading(false);
@@ -1913,6 +2032,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     sendOTPMobileChange,
     verifyOTPMobileChange,
     updateProfile,
+    changePassword,
+    sendForgotPasswordOTP,
+    resetPasswordWithOTP,
     addresses,
     fetchAddresses,
     addAddress,

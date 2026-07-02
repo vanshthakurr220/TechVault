@@ -9,6 +9,7 @@ import {
 import { AuthRequest } from "server/middleware/authMiddleware.js";
 import jwt from "jsonwebtoken";
 import { asyncHandler } from "server/middleware/asyncHandler.js";
+import { generateOTP, sendOTPEmail } from "server/utils/emailService.js";
 
 export const signup = async (req: Request, res: Response) => {
   try {
@@ -225,6 +226,182 @@ export const updateProfile = async (req: AuthRequest, res: Response) => {
     });
   }
 };
+
+export const changePassword = asyncHandler(
+  async (req: Request, res: Response) => {
+    const authReq = req as AuthRequest;
+
+    const { oldPassword, newPassword, confirmNewPassword } = authReq.body;
+
+    if (!oldPassword || !newPassword || !confirmNewPassword) {
+      res.status(400);
+      throw new Error("All password fields are required");
+    }
+
+    if (newPassword.length < 8) {
+      res.status(400);
+      throw new Error("New password must be at least 8 characters");
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      res.status(400);
+      throw new Error("New password and confirm password do not match");
+    }
+
+    if (oldPassword === newPassword) {
+      res.status(400);
+      throw new Error("New password must be different from old password");
+    }
+
+    const user = await User.findById(authReq.userId);
+
+    if (!user) {
+      res.status(404);
+      throw new Error("User not found");
+    }
+
+    const isOldPasswordCorrect = await bcrypt.compare(
+      oldPassword,
+      user.password,
+    );
+
+    if (!isOldPasswordCorrect) {
+      res.status(400);
+      throw new Error("Old password is incorrect");
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.status(200).json({
+      message: "Password changed successfully",
+    });
+  },
+);
+
+export const sendForgotPasswordOTP = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { email } = req.body;
+
+    if (!email) {
+      res.status(400);
+      throw new Error("Email is required");
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      res.status(404);
+      throw new Error("No account found with this email");
+    }
+
+    const existingOTP = await OTP.findOne({
+      email,
+      purpose: "forgot_password",
+      verified: false,
+    });
+
+    if (existingOTP) {
+      await OTP.deleteOne({ _id: existingOTP._id });
+    }
+
+    const otp = generateOTP();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await OTP.create({
+      email,
+      otp,
+      purpose: "forgot_password",
+      verified: false,
+      expiresAt,
+    });
+
+    const emailSent = await sendOTPEmail(email, otp, "forgot_password");
+
+    if (!emailSent) {
+      await OTP.deleteOne({ email, purpose: "forgot_password" });
+
+      res.status(500);
+      throw new Error("Failed to send OTP. Please try again.");
+    }
+
+    res.status(200).json({
+      message: "Password reset OTP sent successfully",
+      email,
+    });
+  },
+);
+
+export const resetPasswordWithOTP = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { email, otp, newPassword, confirmNewPassword } = req.body;
+
+    if (!email || !otp || !newPassword || !confirmNewPassword) {
+      res.status(400);
+      throw new Error("All fields are required");
+    }
+
+    if (newPassword.length < 8) {
+      res.status(400);
+      throw new Error("Password must be at least 8 characters");
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      res.status(400);
+      throw new Error("New password and confirm password do not match");
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      res.status(404);
+      throw new Error("No account found with this email");
+    }
+
+    const otpRecord = await OTP.findOne({
+      email,
+      purpose: "forgot_password",
+      verified: false,
+    });
+
+    if (!otpRecord) {
+      res.status(400);
+      throw new Error("OTP not found or already used");
+    }
+
+    if (new Date() > otpRecord.expiresAt) {
+      await OTP.deleteOne({ _id: otpRecord._id });
+
+      res.status(400);
+      throw new Error("OTP has expired");
+    }
+
+    if (otpRecord.attempts >= 5) {
+      await OTP.deleteOne({ _id: otpRecord._id });
+
+      res.status(400);
+      throw new Error("Maximum attempts exceeded. Please request a new OTP.");
+    }
+
+    if (otpRecord.otp !== otp) {
+      otpRecord.attempts += 1;
+      await otpRecord.save();
+
+      res.status(400);
+      throw new Error(`Invalid OTP. ${5 - otpRecord.attempts} attempts left`);
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+
+    await user.save();
+
+    await OTP.deleteOne({ _id: otpRecord._id });
+
+    res.status(200).json({
+      message: "Password reset successfully",
+    });
+  },
+);
 
 // =====================================
 // ADDRESS MANAGEMENT

@@ -22,10 +22,10 @@ const otpSchema = new mongoose.Schema({
   },
 
   purpose: {
-    type: String,
-    enum: ["signup", "email_change"],
-    required: true,
-  },
+  type: String,
+  enum: ["signup", "email_change", "forgot_password"],
+  required: true,
+},
 
   verified: {
     type: Boolean,

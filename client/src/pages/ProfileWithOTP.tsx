@@ -11,6 +11,9 @@ import {
   Trash2,
   Package,
   X,
+  Lock,
+  EyeOff,
+  Eye,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { useLocation } from "wouter";
@@ -46,6 +49,7 @@ export default function ProfileWithOTP() {
     orders,
     fetchOrders,
     updateProfile,
+    changePassword,
     sendOTPEmailChange,
     verifyOTPEmailChange,
     sendOTPMobileChange,
@@ -54,6 +58,25 @@ export default function ProfileWithOTP() {
   } = useApp();
 
   const [isEditing, setIsEditing] = useState(false);
+
+  const [passwordData, setPasswordData] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmNewPassword: "",
+  });
+
+  const [passwordErrors, setPasswordErrors] = useState<Record<string, string>>(
+    {},
+  );
+
+  const [showPasswords, setShowPasswords] = useState({
+    oldPassword: false,
+    newPassword: false,
+    confirmNewPassword: false,
+  });
+
+  const [showPasswordChangeModal, setShowPasswordChangeModal] = useState(false);
+
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [newAddress, setNewAddress] = useState({
     name: "",
@@ -143,6 +166,79 @@ export default function ProfileWithOTP() {
     try {
       await updateProfile(formData.username);
       setIsEditing(false);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPasswordData({
+      ...passwordData,
+      [e.target.name]: e.target.value,
+    });
+
+    setPasswordErrors({});
+  };
+
+  const togglePasswordVisibility = (
+    field: "oldPassword" | "newPassword" | "confirmNewPassword",
+  ) => {
+    setShowPasswords((prev) => ({
+      ...prev,
+      [field]: !prev[field],
+    }));
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const newErrors: Record<string, string> = {};
+
+    if (!passwordData.oldPassword) {
+      newErrors.oldPassword = "Current password is required";
+    }
+
+    if (!passwordData.newPassword) {
+      newErrors.newPassword = "New password is required";
+    } else if (passwordData.newPassword.length < 8) {
+      newErrors.newPassword = "New password must be at least 8 characters";
+    }
+
+    if (!passwordData.confirmNewPassword) {
+      newErrors.confirmNewPassword = "Confirm password is required";
+    } else if (passwordData.newPassword !== passwordData.confirmNewPassword) {
+      newErrors.confirmNewPassword = "Passwords do not match";
+    }
+
+    if (
+      passwordData.oldPassword &&
+      passwordData.newPassword &&
+      passwordData.oldPassword === passwordData.newPassword
+    ) {
+      newErrors.newPassword =
+        "New password must be different from current password";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setPasswordErrors(newErrors);
+      return;
+    }
+
+    try {
+      await changePassword(
+        passwordData.oldPassword,
+        passwordData.newPassword,
+        passwordData.confirmNewPassword,
+      );
+
+      setPasswordData({
+        oldPassword: "",
+        newPassword: "",
+        confirmNewPassword: "",
+      });
+
+      setPasswordErrors({});
+      setShowPasswordChangeModal(false);
     } catch (error) {
       console.error(error);
     }
@@ -314,6 +410,20 @@ export default function ProfileWithOTP() {
     } catch (error) {
       console.error("Error saving address:", error);
     }
+  };
+
+  const resetAddressForm = () => {
+    setShowAddressForm(false);
+    setEditingAddressId(null);
+    setNewAddress({
+      name: "",
+      street: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      phone: "",
+      isDefault: false,
+    });
   };
 
   const handleDeleteAddress = async (addressId: string) => {
@@ -496,6 +606,31 @@ export default function ProfileWithOTP() {
               </div>
             </div>
 
+            <div className="bg-card border border-border rounded-xl p-4 sm:p-6 mt-6">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold monospace flex items-center gap-2">
+                    <Lock size={20} />
+                    Password
+                  </h2>
+
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Your password is securely encrypted. Change it anytime for
+                    better account security.
+                  </p>
+                </div>
+
+                <Button
+                  onClick={() => setShowPasswordChangeModal(true)}
+                  size="sm"
+                  variant="outline"
+                  className="w-full sm:w-auto hover:bg-black hover:text-white hover:border-black"
+                >
+                  Change Password
+                </Button>
+              </div>
+            </div>
+
             {/* Addresses Section */}
             <div className="bg-card border border-border rounded-xl p-4 sm:p-6 mt-6">
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6">
@@ -505,7 +640,19 @@ export default function ProfileWithOTP() {
                 </h2>
 
                 <Button
-                  onClick={() => setShowAddressForm(!showAddressForm)}
+                  onClick={() => {
+                    setEditingAddressId(null);
+                    setNewAddress({
+                      name: "",
+                      street: "",
+                      city: "",
+                      state: "",
+                      zipCode: "",
+                      phone: "",
+                      isDefault: false,
+                    });
+                    setShowAddressForm(true);
+                  }}
                   size="sm"
                   className="w-full sm:w-auto flex items-center justify-center gap-2"
                 >
@@ -555,7 +702,7 @@ export default function ProfileWithOTP() {
                               }
                               size="sm"
                               variant="outline"
-                              className="flex-1 sm:flex-none"
+                              className="flex-1 sm:flex-none hover:bg-black hover:text-white hover:border-black"
                             >
                               Set Default
                             </Button>
@@ -565,7 +712,7 @@ export default function ProfileWithOTP() {
                             onClick={() => handleEditAddress(address)}
                             size="sm"
                             variant="outline"
-                            className="flex-1 sm:flex-none"
+                            className="flex-1 sm:flex-none hover:bg-black hover:text-white hover:border-black"
                           >
                             <Edit2 size={14} />
                             <span className="sm:hidden ml-1">Edit</span>
@@ -892,6 +1039,221 @@ export default function ProfileWithOTP() {
                   </Button>
                 </form>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Password Change Modal */}
+        {showPasswordChangeModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-card rounded-xl p-4 sm:p-6 max-w-md w-full">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold monospace flex items-center gap-2">
+                  <Lock size={20} />
+                  Change Password
+                </h3>
+
+                <button
+                  onClick={() => {
+                    setShowPasswordChangeModal(false);
+                    setPasswordData({
+                      oldPassword: "",
+                      newPassword: "",
+                      confirmNewPassword: "",
+                    });
+                    setPasswordErrors({});
+                  }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleChangePassword} className="space-y-4">
+                {[
+                  {
+                    label: "Current Password",
+                    name: "oldPassword" as const,
+                    value: passwordData.oldPassword,
+                    error: passwordErrors.oldPassword,
+                    show: showPasswords.oldPassword,
+                  },
+                  {
+                    label: "New Password",
+                    name: "newPassword" as const,
+                    value: passwordData.newPassword,
+                    error: passwordErrors.newPassword,
+                    show: showPasswords.newPassword,
+                  },
+                  {
+                    label: "Confirm New Password",
+                    name: "confirmNewPassword" as const,
+                    value: passwordData.confirmNewPassword,
+                    error: passwordErrors.confirmNewPassword,
+                    show: showPasswords.confirmNewPassword,
+                  },
+                ].map((field) => (
+                  <div key={field.name}>
+                    <label className="block text-sm font-bold monospace mb-2">
+                      {field.label}
+                    </label>
+
+                    <div className="relative">
+                      <input
+                        type={field.show ? "text" : "password"}
+                        name={field.name}
+                        value={field.value}
+                        onChange={handlePasswordChange}
+                        placeholder={`Enter ${field.label.toLowerCase()}`}
+                        className="w-full px-4 py-2 pr-11 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      />
+
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility(field.name)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {field.show ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+
+                    {field.error && (
+                      <p className="text-red-600 text-xs mt-1">{field.error}</p>
+                    )}
+                  </div>
+                ))}
+
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-2"
+                >
+                  <Lock size={16} />
+                  {loading ? "Changing..." : "Change Password"}
+                </Button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Address Add/Edit Modal */}
+        {showAddressForm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-card rounded-xl p-4 sm:p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-5">
+                <h3 className="text-xl font-bold monospace flex items-center gap-2">
+                  <MapPin size={20} />
+                  {editingAddressId ? "Edit Address" : "Add Address"}
+                </h3>
+
+                <button
+                  onClick={() => {
+                    setShowAddressForm(false);
+                    setEditingAddressId(null);
+                    setNewAddress({
+                      name: "",
+                      street: "",
+                      city: "",
+                      state: "",
+                      zipCode: "",
+                      phone: "",
+                      isDefault: false,
+                    });
+                  }}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleAddAddress} className="space-y-4">
+                <input
+                  name="name"
+                  value={newAddress.name}
+                  onChange={handleAddressChange}
+                  placeholder="Full Name"
+                  className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+
+                <input
+                  name="phone"
+                  value={newAddress.phone}
+                  onChange={handleAddressChange}
+                  placeholder="Phone Number"
+                  className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+
+                <input
+                  name="street"
+                  value={newAddress.street}
+                  onChange={handleAddressChange}
+                  placeholder="Street Address"
+                  className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <input
+                    name="city"
+                    value={newAddress.city}
+                    onChange={handleAddressChange}
+                    placeholder="City"
+                    className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+
+                  <input
+                    name="state"
+                    value={newAddress.state}
+                    onChange={handleAddressChange}
+                    placeholder="State"
+                    className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                </div>
+
+                <input
+                  name="zipCode"
+                  value={newAddress.zipCode}
+                  onChange={handleAddressChange}
+                  placeholder="Zip Code"
+                  className="w-full px-4 py-2 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+
+                <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full sm:flex-1"
+                  >
+                    {loading
+                      ? editingAddressId
+                        ? "Updating..."
+                        : "Saving..."
+                      : editingAddressId
+                        ? "Update Address"
+                        : "Save Address"}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddressForm(false);
+                      setEditingAddressId(null);
+                      setNewAddress({
+                        name: "",
+                        street: "",
+                        city: "",
+                        state: "",
+                        zipCode: "",
+                        phone: "",
+                        isDefault: false,
+                      });
+                    }}
+                    className="w-full sm:flex-1 hover:bg-black hover:text-white hover:border-black"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
             </div>
           </div>
         )}
