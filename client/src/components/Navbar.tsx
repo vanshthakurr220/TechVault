@@ -31,11 +31,9 @@ export default function Navbar() {
   const { userLoggedIn, user, cartCount, wishlistCount, logout } = useApp();
   const [location, navigate] = useLocation();
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const wishlistDropdownRef = useRef<HTMLDivElement>(null);
 
   const [isOpen, setIsOpen] = useState(false);
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
-  const [isWishlistDropdownOpen, setIsWishlistDropdownOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   const isAdminRoute = location.startsWith("/admin");
@@ -53,12 +51,6 @@ export default function Navbar() {
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setIsUserDropdownOpen(false);
-      }
-      if (
-        wishlistDropdownRef.current &&
-        !wishlistDropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsWishlistDropdownOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -169,48 +161,20 @@ export default function Navbar() {
               <div className="flex items-center gap-1">
                 {/* Wishlist Dropdown */}
 
-                <div ref={wishlistDropdownRef} className="relative">
-                  <button
-                    onClick={() =>
-                      setIsWishlistDropdownOpen(!isWishlistDropdownOpen)
-                    }
-                    className="relative p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group"
-                  >
+                <Link href="/wishlist">
+                  <a className="relative p-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors group">
                     <Heart
                       size={20}
                       className="text-slate-600 dark:text-slate-400 group-hover:text-rose-500 transition-colors"
                     />
+
                     {wishlistCount > 0 && (
-                      <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-950">
+                      <span className="absolute top-3.5 right-.5 w-4 h-4 bg-rose-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-950">
                         {wishlistCount}
                       </span>
                     )}
-                  </button>
-
-                  {isWishlistDropdownOpen && (
-                    <div className="absolute right-0 mt-3 w-64 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200">
-                      <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 mb-2">
-                        <p className="text-sm font-black text-slate-900 dark:text-white">
-                          Your Wishlist
-                        </p>
-                      </div>
-                      <Link href="/wishlist">
-                        <a
-                          onClick={() => setIsWishlistDropdownOpen(false)}
-                          className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors group"
-                        >
-                          <span className="text-sm font-bold text-slate-600 dark:text-slate-400 group-hover:text-primary">
-                            View all items
-                          </span>
-                          <ArrowRight
-                            size={16}
-                            className="text-slate-400 group-hover:translate-x-1 transition-transform"
-                          />
-                        </a>
-                      </Link>
-                    </div>
-                  )}
-                </div>
+                  </a>
+                </Link>
 
                 {/* Cart Button */}
                 <Link href="/cart">
@@ -220,7 +184,7 @@ export default function Navbar() {
                       className="text-slate-600 dark:text-slate-400 group-hover:text-primary transition-colors"
                     />
                     {cartCount > 0 && (
-                      <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-950">
+                      <span className="absolute top-3.5 right-.5 w-4 h-4 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white dark:ring-slate-950">
                         {cartCount}
                       </span>
                     )}

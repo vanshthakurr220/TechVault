@@ -749,131 +749,270 @@ export default function AdminProducts() {
 
   const viewProduct = (product: Product) => {
     const stats = getProductStats(product._id);
+
     const productImages =
       product.images && product.images.length > 0
         ? product.images
         : [product.image];
-    // Serialize images for the inline JS handlers
+
     const imagesJson = JSON.stringify(productImages).replace(/"/g, "&quot;");
 
+    const stockStatus =
+      product.stockQuantity <= 0
+        ? {
+            text: "Out of Stock",
+            bg: "#fee2e2",
+            color: "#991b1b",
+            dot: "#ef4444",
+          }
+        : product.stockQuantity <= 5
+          ? {
+              text: `Low Stock • ${product.stockQuantity} left`,
+              bg: "#fef3c7",
+              color: "#92400e",
+              dot: "#f59e0b",
+            }
+          : {
+              text: `In Stock • ${product.stockQuantity} available`,
+              bg: "#dcfce7",
+              color: "#166534",
+              dot: "#22c55e",
+            };
+
     Swal.fire({
-      width: "750px",
+      width: "min(94vw, 720px)",
+      padding: "0",
       showConfirmButton: true,
       confirmButtonText: "Close",
-
+      customClass: {
+        popup: "rounded-3xl overflow-hidden",
+        confirmButton: "rounded-xl px-8 py-3 font-bold",
+      },
       html: `
-    <div style="font-family: Inter, sans-serif; text-align:left;">
+<div style="font-family:Inter,sans-serif;background:#f8fafc;text-align:left;color:#0f172a;">
 
-      <div style="
-        background: linear-gradient(135deg,#111827,#1f2937);
-        color:white;
-        padding:18px;
-        border-radius:14px;
-        margin-bottom:24px;
-        text-align:center;
-      ">
-        <h1 style="margin:0; font-size:24px; font-weight:700;">${product.name}</h1>
-        <p style="margin-top:4px; font-size:13px; opacity:.8;">${product.brand} • ${product.model}</p>
+  <div style="background:white;border-bottom:1px solid #e5e7eb;padding:20px 22px;">
+    <p style="margin:0 0 6px;color:#64748b;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;">
+      Product Overview
+    </p>
+    <h2 style="margin:0;font-size:clamp(22px,5vw,30px);font-weight:900;line-height:1.2;">
+      ${product.name}
+    </h2>
+  </div>
+
+  <div style="padding:18px;">
+
+    <div style="background:white;border:1px solid #e5e7eb;border-radius:24px;padding:14px;box-shadow:0 16px 40px rgba(15,23,42,.08);">
+      <div style="position:relative;height:300px;background:linear-gradient(180deg,#f8fafc,#ffffff);border-radius:20px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+        <img id="swal-main-image" src="${productImages[0]}" data-index="0" style="width:100%;height:100%;object-fit:contain;padding:24px;" />
+
+        ${
+          productImages.length > 1
+            ? `
+          <button onclick="const imgs=${imagesJson};let i=parseInt(document.getElementById('swal-main-image').getAttribute('data-index'));i=(i-1+imgs.length)%imgs.length;const img=document.getElementById('swal-main-image');img.src=imgs[i];img.setAttribute('data-index',i);" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:36px;height:36px;border:none;border-radius:50%;background:white;box-shadow:0 6px 18px rgba(15,23,42,.18);cursor:pointer;font-size:24px;">‹</button>
+
+          <button onclick="const imgs=${imagesJson};let i=parseInt(document.getElementById('swal-main-image').getAttribute('data-index'));i=(i+1)%imgs.length;const img=document.getElementById('swal-main-image');img.src=imgs[i];img.setAttribute('data-index',i);" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);width:36px;height:36px;border:none;border-radius:50%;background:white;box-shadow:0 6px 18px rgba(15,23,42,.18);cursor:pointer;font-size:24px;">›</button>
+        `
+            : ""
+        }
       </div>
 
-      <div style="display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap;">
-
-        <div style="flex:0 0 180px;">
-          <!-- Image Container with Navigation -->
-          <div style="position:relative; width:180px; height:180px; background:white; border-radius:20px; border:1px solid #e5e7eb; box-shadow:0 10px 25px rgba(0,0,0,.08); overflow:hidden; display:flex; align-items:center; justify-center;">
-            <img
-              id="swal-main-image"
-              src="${productImages[0]}"
-              data-index="0"
-              style="width:100%; height:100%; object-fit:contain; padding:20px; transition: opacity 0.3s;"
-            />
-            
-            ${
-              productImages.length > 1
-                ? `
-              <!-- Left Button -->
-              <button 
-                onclick="const imgs = ${imagesJson}; let i = parseInt(document.getElementById('swal-main-image').getAttribute('data-index')); i = (i - 1 + imgs.length) % imgs.length; const img = document.getElementById('swal-main-image'); img.style.opacity='0'; setTimeout(() => { img.src = imgs[i]; img.setAttribute('data-index', i); img.style.opacity='1'; }, 150);"
-                style="position:absolute; left:5px; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.8); border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.1); z-index:10;"
-              >‹</button>
-              
-              <!-- Right Button -->
-              <button 
-                onclick="const imgs = ${imagesJson}; let i = parseInt(document.getElementById('swal-main-image').getAttribute('data-index')); i = (i + 1) % imgs.length; const img = document.getElementById('swal-main-image'); img.style.opacity='0'; setTimeout(() => { img.src = imgs[i]; img.setAttribute('data-index', i); img.style.opacity='1'; }, 150);"
-                style="position:absolute; right:5px; top:50%; transform:translateY(-50%); background:rgba(255,255,255,0.8); border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.1); z-index:10;"
-              >›</button>
-            `
-                : ""
-            }
-          </div>
-          
-          <!-- Thumbnails -->
-          ${
-            productImages.length > 1
-              ? `
-          <div style="display:flex; gap:5px; margin-top:10px; overflow-x:auto; padding-bottom:5px;">
-            ${productImages
-              .map(
-                (img, idx) => `
-              <img 
-                src="${img}" 
-                onclick="document.getElementById('swal-main-image').src='${img}'; document.getElementById('swal-main-image').setAttribute('data-index', '${idx}')"
-                style="width:40px; height:40px; object-fit:contain; background:white; border-radius:8px; border:1px solid #e5e7eb; cursor:pointer;"
-              />
-            `,
-              )
-              .join("")}
-          </div>
-          `
-              : ""
-          }
-        </div>
-
-        <div style="flex:1; min-width:400px;">
-          <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
-            <span style="background:#eef2ff; color:#4338ca; padding:4px 10px; border-radius:999px; font-size:11px; font-weight:600;">${product.category}</span>
-            <span style="background:${product.inStock ? "#dcfce7" : "#fee2e2"}; color:${product.inStock ? "#166534" : "#991b1b"}; padding:6px 12px; border-radius:999px; font-size:13px; font-weight:600;">${product.inStock ? "In Stock" : "Out Of Stock"}</span>
-          </div>
-
-          <div style="margin-bottom:20px;">
-            <span style="font-size:24px; font-weight:700; color:#111827;">₹${product.price.toLocaleString()}</span>
-            ${product.originalPrice > product.price ? `<span style="margin-left:10px; text-decoration:line-through; color:#9ca3af; font-size:18px;">₹${product.originalPrice.toLocaleString()}</span>` : ""}
-          </div>
-
-          <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-bottom:16px; font-size:13px;">
-            <div><strong>Brand</strong><div>${product.brand}</div></div>
-            <div><strong>Model</strong><div>${product.model}</div></div>
-            <div><strong>Views</strong><div>${product.views || 0}</div></div>
-            <div><strong>Wishlist</strong><div>${stats.wishlistCount}</div></div>
-            <div><strong>Ordered</strong><div>${stats.totalOrdered}</div></div>
-            <div><strong>Revenue</strong><div>₹${stats.totalRevenue.toLocaleString()}</div></div>
-            <div><strong>Created</strong><div>${new Date(product.createdAt).toLocaleDateString()}</div></div>
-          </div>
-
-          <div>
-            <h3 style="font-size:16px; margin-bottom:10px;">Description</h3>
-            <p style="color:#6b7280; font-size:13px; line-height:1.6;">${product.description}</p>
-          </div>
-        </div>
-      </div>
-
-      <div style="margin-top:30px;">
-        <h3 style="margin-bottom:15px; color:#111827;">Specifications</h3>
-        <div style="display:flex; flex-wrap:wrap; gap:8px;">
-          ${Object.entries(product.specifications || {})
+      ${
+        productImages.length > 1
+          ? `
+        <div style="display:flex;gap:8px;margin-top:12px;overflow-x:auto;padding-bottom:4px;">
+          ${productImages
             .map(
-              ([key, value]) => `
-              <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:6px 10px; min-width:120px;">
-                <div style="color:#64748b; font-size:10px; text-transform:uppercase; margin-bottom:2px; font-weight:500; letter-spacing:.3px;">${key}</div>
-                <div style="font-size:12px; font-weight:600; color:#111827; line-height:1.3;">${value}</div>
-              </div>
+              (img, idx) => `
+              <img src="${img}" onclick="document.getElementById('swal-main-image').src='${img}';document.getElementById('swal-main-image').setAttribute('data-index','${idx}')" style="width:58px;height:58px;object-fit:contain;background:#f8fafc;border:1px solid #e5e7eb;border-radius:14px;padding:5px;cursor:pointer;flex:0 0 auto;" />
             `,
             )
             .join("")}
         </div>
+      `
+          : ""
+      }
+    </div>
+
+    <div style="margin-top:16px;background:white;border:1px solid #e5e7eb;border-radius:22px;padding:16px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap;">
+        <div>
+          <p style="margin:0;color:#64748b;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;">Selling Price</p>
+          <div style="margin-top:5px;">
+            <span style="font-size:clamp(30px,6vw,42px);font-weight:950;color:#020617;">₹${product.price.toLocaleString()}</span>
+            ${
+              product.originalPrice > product.price
+                ? `<span style="margin-left:10px;color:#94a3b8;text-decoration:line-through;font-size:18px;">₹${product.originalPrice.toLocaleString()}</span>`
+                : ""
+            }
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;" class="tv-badge-wrap">
+          <span style="background:#eef2ff;color:#4338ca;padding:8px 13px;border-radius:999px;font-size:12px;font-weight:800;">
+            ${product.category}
+          </span>
+
+          <span style="background:${stockStatus.bg};color:${stockStatus.color};padding:8px 13px;border-radius:999px;font-size:12px;font-weight:900;display:flex;align-items:center;gap:7px;">
+            <span style="width:8px;height:8px;border-radius:999px;background:${stockStatus.dot};display:inline-block;"></span>
+            ${stockStatus.text}
+          </span>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;padding-top:14px;border-top:1px solid #e5e7eb;display:flex;gap:22px;flex-wrap:wrap;">
+        <div>
+          <p style="margin:0 0 3px;color:#64748b;font-size:11px;font-weight:800;text-transform:uppercase;">Brand</p>
+          <p style="margin:0;font-size:15px;font-weight:900;color:#020617;">${product.brand}</p>
+        </div>
+
+        <div>
+          <p style="margin:0 0 3px;color:#64748b;font-size:11px;font-weight:800;text-transform:uppercase;">Model</p>
+          <p style="margin:0;font-size:15px;font-weight:900;color:#020617;">${product.model}</p>
+        </div>
+
+        <div>
+          <p style="margin:0 0 3px;color:#64748b;font-size:11px;font-weight:800;text-transform:uppercase;">Created</p>
+          <p style="margin:0;font-size:15px;font-weight:900;color:#020617;">${new Date(product.createdAt).toLocaleDateString()}</p>
+        </div>
       </div>
     </div>
-    `,
+
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:16px;" class="tv-stats-grid">
+      ${[
+        ["Views", product.views || 0, "👁"],
+        ["Wishlist", stats.wishlistCount, "❤️"],
+        ["Orders", stats.totalOrdered, "📦"],
+        ["Revenue", `₹${stats.totalRevenue.toLocaleString()}`, "₹"],
+      ]
+        .map(
+          ([label, value, icon]) => `
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:20px;padding:16px;display:flex;align-items:center;gap:13px;box-shadow:0 8px 22px rgba(15,23,42,.04);">
+            <div style="width:42px;height:42px;border-radius:15px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;">
+              ${icon}
+            </div>
+            <div>
+              <p style="margin:0 0 3px;color:#64748b;font-size:11px;text-transform:uppercase;font-weight:800;">${label}</p>
+              <p style="margin:0;color:#020617;font-size:18px;font-weight:950;word-break:break-word;">${value}</p>
+            </div>
+          </div>
+        `,
+        )
+        .join("")}
+    </div>
+
+    <div style="margin-top:16px;background:white;border:1px solid #e5e7eb;border-radius:22px;padding:17px;">
+      <h3 style="margin:0 0 10px;font-size:18px;font-weight:900;color:#020617;">Description</h3>
+      <p style="margin:0;color:#475569;font-size:14px;line-height:1.8;">
+        ${product.description || "No description available."}
+      </p>
+    </div>
+
+    <div style="margin-top:16px;background:white;border:1px solid #e5e7eb;border-radius:22px;padding:16px;">
+  <h3 style="margin:0 0 14px;font-size:18px;font-weight:900;color:#020617;">
+    Specifications
+  </h3>
+
+  ${
+    Object.keys(product.specifications || {}).length > 0
+      ? `
+      <table style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed;">
+        <tbody>
+          ${Object.entries(product.specifications)
+            .map(
+              ([key, value], index) => `
+              <tr style="background:${index % 2 === 0 ? "#ffffff" : "#f8fafc"};">
+                <td
+                  style="
+                    width:34%;
+                    padding:10px 8px;
+                    border-bottom:1px solid #e5e7eb;
+                    color:#64748b;
+                    font-weight:700;
+                    font-size:12px;
+                    vertical-align:top;
+                    word-break:break-word;
+                  "
+                >
+                  ${key}
+                </td>
+
+                <td
+                  style="
+                    padding:10px 8px;
+                    border-bottom:1px solid #e5e7eb;
+                    color:#111827;
+                    font-weight:600;
+                    font-size:12px;
+                    vertical-align:top;
+                    word-break:break-word;
+                  "
+                >
+                  ${value}
+                </td>
+              </tr>
+            `,
+            )
+            .join("")}
+        </tbody>
+      </table>
+    `
+      : `<p style="margin:0;color:#64748b;">No specifications available.</p>`
+  }
+</div>
+
+  </div>
+
+  <style>
+    @media (max-width: 640px) {
+      div[style*="height:300px"] {
+        height: 220px !important;
+      }
+
+      #swal-main-image {
+        padding: 16px !important;
+      }
+
+      .tv-stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+      }
+
+      .tv-stats-grid > div {
+        padding: 13px !important;
+        align-items: flex-start !important;
+      }
+
+      .tv-stats-grid > div > div:first-child {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 17px !important;
+        border-radius: 13px !important;
+      }
+
+      .tv-stats-grid p:last-child {
+        font-size: 15px !important;
+      }
+
+      .tv-badge-wrap {
+        align-items: flex-start !important;
+        width: 100% !important;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .tv-stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+
+      .tv-stats-grid > div {
+        flex-direction: column !important;
+        gap: 8px !important;
+      }
+    }
+  </style>
+</div>
+`,
     });
   };
 
@@ -1387,7 +1526,7 @@ export default function AdminProducts() {
       </div>
 
       {/* Filters & Sorting */}
-      <div className="mb-8 bg-white rounded-3xl border shadow-sm p-6">
+      <div className="mb-8 bg-white rounded-2xl sm:rounded-3xl border shadow-sm p-4 sm:p-6">
         <div className="flex flex-col xl:flex-row gap-4 xl:items-center xl:justify-between">
           <div>
             <h3 className="text-lg font-semibold">Product Filters</h3>
@@ -1397,14 +1536,14 @@ export default function AdminProducts() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap gap-3 w-full xl:w-auto">
             {/* Search */}
             <input
               type="text"
               placeholder="Search products..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="
+              className="w-full sm:w-auto
           h-10
           px-4
           border
@@ -1531,8 +1670,8 @@ export default function AdminProducts() {
       </div>
 
       {/* Analytics Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
-        <div className="bg-white p-5 rounded-3xl border shadow-sm">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4 mb-8">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border shadow-sm">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
               <Package size={20} />
@@ -1544,7 +1683,7 @@ export default function AdminProducts() {
           <p className="text-2xl font-bold">{analytics.totalProducts}</p>
         </div>
 
-        <div className="bg-white p-5 rounded-3xl border shadow-sm">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border shadow-sm">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
               <DollarSign size={20} />
@@ -1558,7 +1697,7 @@ export default function AdminProducts() {
           </p>
         </div>
 
-        <div className="bg-white p-5 rounded-3xl border shadow-sm">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border shadow-sm">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 bg-orange-50 text-orange-600 rounded-xl">
               <ShoppingCart size={20} />
@@ -1570,7 +1709,7 @@ export default function AdminProducts() {
           <p className="text-2xl font-bold">{analytics.totalOrders}</p>
         </div>
 
-        <div className="bg-white p-5 rounded-3xl border shadow-sm">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border shadow-sm">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 bg-pink-50 text-pink-600 rounded-xl">
               <Heart size={20} />
@@ -1587,7 +1726,7 @@ export default function AdminProducts() {
           </p>
         </div>
 
-        <div className="bg-white p-5 rounded-3xl border shadow-sm">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border shadow-sm">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
               <Eye size={20} />
@@ -1604,7 +1743,7 @@ export default function AdminProducts() {
           </p>
         </div>
 
-        <div className="bg-white p-5 rounded-3xl border shadow-sm">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border shadow-sm">
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
               <Star size={20} fill="currentColor" />

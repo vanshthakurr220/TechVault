@@ -168,8 +168,12 @@ export default function AdminWishlists() {
               </div>
             </div>
           </div>
-          <div className="bg-primary/10 px-3 py-1.5 rounded-xl border border-primary/10 text-[8px] font-bold text-primary uppercase tracking-widest shadow-sm">
-            ID: {group.userId}
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 border border-slate-200">
+            <span className="text-[9px] font-semibold text-slate-500">ID</span>
+
+            <span className="font-mono text-[10px] font-bold text-primary">
+              #{group.userId.slice(-6).toUpperCase()}
+            </span>
           </div>
         </div>
 
@@ -287,29 +291,36 @@ export default function AdminWishlists() {
           </p>
         </div>
 
-        <div className="flex gap-4">
-          <div className="px-6 py-4 rounded-[28px] bg-white border border-slate-100 shadow-xl shadow-slate-200/50 flex items-center gap-4 group hover:border-primary/30 transition-all">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-              <Heart size={20} className="fill-primary" />
+        <div className="grid grid-cols-2 lg:flex gap-3 lg:gap-4">
+          {/* Total Items */}
+          <div className="bg-white border border-slate-100 shadow-xl shadow-slate-200/50 rounded-2xl lg:rounded-[28px] p-4 lg:px-6 lg:py-4 flex items-center gap-3 lg:gap-4 group hover:border-primary/30 transition-all">
+            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 group-hover:scale-110 transition-transform">
+              <Heart size={18} className="lg:w-5 lg:h-5 fill-primary" />
             </div>
-            <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
+
+            <div className="min-w-0">
+              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
                 Total Items
               </p>
-              <p className="text-2xl font-black text-slate-900 leading-none mt-2 tracking-tighter">
+
+              <p className="text-xl lg:text-2xl font-black text-slate-900 leading-none mt-1.5 lg:mt-2 tracking-tighter">
                 {wishlistItems.length}
               </p>
             </div>
           </div>
-          <div className="px-6 py-4 rounded-[28px] bg-white border border-slate-100 shadow-xl shadow-slate-200/50 flex items-center gap-4 group hover:border-blue-500/30 transition-all">
-            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
-              <User size={20} className="fill-blue-500/20" />
+
+          {/* Active Users */}
+          <div className="bg-white border border-slate-100 shadow-xl shadow-slate-200/50 rounded-2xl lg:rounded-[28px] p-4 lg:px-6 lg:py-4 flex items-center gap-3 lg:gap-4 group hover:border-blue-500/30 transition-all">
+            <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-600 shrink-0 group-hover:scale-110 transition-transform">
+              <User size={18} className="lg:w-5 lg:h-5 fill-blue-500/20" />
             </div>
-            <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
+
+            <div className="min-w-0">
+              <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
                 Active Users
               </p>
-              <p className="text-2xl font-black text-slate-900 leading-none mt-2 tracking-tighter">
+
+              <p className="text-xl lg:text-2xl font-black text-slate-900 leading-none mt-1.5 lg:mt-2 tracking-tighter">
                 {groupedWishlists.length}
               </p>
             </div>
@@ -329,29 +340,36 @@ export default function AdminWishlists() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-4">
-            <div className="px-5 py-3 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
-                <Package size={18} />
+          <div className="grid grid-cols-2 lg:flex lg:flex-wrap gap-3 lg:gap-4">
+            {/* Unique Products */}
+            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 lg:px-5 lg:py-3 flex items-center gap-3">
+              <div className="w-10 h-10 lg:w-auto lg:h-auto p-2 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                <Package size={18} className="lg:w-[18px] lg:h-[18px]" />
               </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
+
+              <div className="min-w-0">
+                <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
                   Unique Products
                 </p>
-                <p className="text-lg font-black text-slate-900 mt-1">
+
+                <p className="text-xl lg:text-lg font-black text-slate-900 mt-1">
                   {new Set(wishlistItems.map((i) => i.productId?._id)).size}
                 </p>
               </div>
             </div>
-            <div className="px-5 py-3 rounded-2xl bg-emerald-50/50 border border-emerald-100/50 flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-emerald-100 text-emerald-600">
+
+            {/* Total Value */}
+            <div className="bg-emerald-50/50 border border-emerald-100/50 rounded-2xl p-3 sm:p-4 lg:px-5 lg:py-3 flex items-center gap-2 sm:gap-3 min-w-0">
+              <div className="w-10 h-10 lg:w-auto lg:h-auto p-2 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
                 <DollarSign size={18} />
               </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
+
+              <div className="min-w-0 flex-1">
+                <p className="text-[8px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight">
                   Total Value
                 </p>
-                <p className="text-lg font-black text-slate-900 mt-1">
+
+                <p className="text-base sm:text-xl lg:text-lg font-black text-slate-900 mt-1 break-all leading-tight">
                   ₹
                   {wishlistItems
                     .reduce(
@@ -362,15 +380,19 @@ export default function AdminWishlists() {
                 </p>
               </div>
             </div>
-            <div className="px-5 py-3 rounded-2xl bg-blue-50/50 border border-blue-100/50 flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-blue-100 text-blue-600">
-                <Activity size={18} />
+
+            {/* Avg Per User */}
+            <div className="bg-blue-50/50 border border-blue-100/50 rounded-2xl p-4 lg:px-5 lg:py-3 flex items-center gap-3 col-span-2 lg:col-span-1">
+              <div className="w-10 h-10 lg:w-auto lg:h-auto p-2 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                <Activity size={18} className="lg:w-[18px] lg:h-[18px]" />
               </div>
-              <div>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
+
+              <div className="min-w-0">
+                <p className="text-[9px] sm:text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">
                   Avg. Per User
                 </p>
-                <p className="text-lg font-black text-slate-900 mt-1">
+
+                <p className="text-xl lg:text-lg font-black text-slate-900 mt-1">
                   {(
                     wishlistItems.length / (groupedWishlists.length || 1)
                   ).toFixed(1)}{" "}

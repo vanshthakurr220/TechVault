@@ -369,9 +369,7 @@ export default function Orders() {
   };
 
   if (loading) {
-    return (
-      <Loader text="Retrieving orders..." variant="page" />
-    );
+    return <Loader text="Retrieving orders..." variant="page" />;
   }
 
   return (
@@ -440,7 +438,9 @@ export default function Orders() {
                   {stat.label}
                 </span>
               </div>
-              <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+              <p className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 wrap-break-words leading-tight">
+                {stat.value}
+              </p>
             </div>
           ))}
         </div>

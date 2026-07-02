@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Trash2, ShoppingBag, ArrowRight, Heart } from "lucide-react";
+import {
+  Trash2,
+  ShoppingBag,
+  ArrowRight,
+  Heart,
+  ShoppingCart,
+} from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { Link } from "wouter";
 import Swal from "sweetalert2";
@@ -141,65 +147,83 @@ export default function Wishlist() {
               <div
                 key={item._id}
                 onClick={() => navigate(`/product/${item.productId._id}`)}
-                className="flex flex-col sm:flex-row gap-4 border border-slate-200 bg-white p-4 rounded-2xl hover:shadow-lg hover:border-slate-300 transition-all duration-300 cursor-pointer"
+                className="group cursor-pointer overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-xl"
               >
-                <img
-                  src={
-                    item.productId.images?.[0] ||
-                    item.productId.image ||
-                    "/placeholder.png"
-                  }
-                  className="w-24 h-24 sm:w-20 sm:h-20 rounded-xl object-contain bg-slate-50 p-2 border"
-                  alt={item.productId.name}
-                />
+                <div className="flex flex-col sm:flex-row gap-4 p-4 sm:p-5">
+                  <div className="relative w-full sm:w-32 h-48 sm:h-32 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden shrink-0">
+                    <img
+                      src={
+                        item.productId.images?.[0] ||
+                        item.productId.image ||
+                        "/placeholder.png"
+                      }
+                      alt={item.productId.name}
+                      className="max-w-full max-h-full object-contain p-4 transition-transform duration-500 group-hover:scale-110"
+                    />
 
-                <div className="flex-1">
-                  <h3 className="font-bold">{item.productId.name}</h3>
+                    {!item.productId.inStock && (
+                      <span className="absolute top-3 left-3 rounded-full bg-red-600 px-3 py-1 text-[10px] font-bold text-white shadow-sm">
+                        Out of Stock
+                      </span>
+                    )}
+                  </div>
 
-                  <p className="text-sm text-muted-foreground mb-2">
-                    {item.productId.brand}
-                  </p>
+                  <div className="flex flex-1 flex-col justify-between min-w-0">
+                    <div>
+                      <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                        {item.productId.brand}
+                      </p>
 
-                  <p className="text-primary font-bold">
-                    ₹{item.productId.price.toLocaleString()}
-                  </p>
+                      <h3 className="line-clamp-2 text-lg sm:text-xl font-black leading-tight text-slate-900 transition-colors group-hover:text-primary">
+                        {item.productId.name}
+                      </h3>
 
-                  {!item.productId.inStock && (
-                    <p className="text-xs text-red-500 font-semibold mt-1">
-                      Out of Stock
-                    </p>
-                  )}
-                </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <span className="rounded-xl bg-primary/10 px-3 py-1.5 text-sm font-black text-primary">
+                          ₹{item.productId.price.toLocaleString()}
+                        </span>
 
-                <div className="flex flex-row sm:flex-col gap-2 justify-center sm:items-end">
-                  <Button
-                    disabled={!item.productId.inStock}
-                    onClick={(e) => {
-                      e.stopPropagation();
+                        {item.productId.inStock ? (
+                          <span className="rounded-xl bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-600 border border-emerald-100">
+                            In Stock
+                          </span>
+                        ) : (
+                          <span className="rounded-xl bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 border border-red-100">
+                            Currently unavailable
+                          </span>
+                        )}
+                      </div>
+                    </div>
 
-                      addToCartFromWishlist(
-                        item.productId._id,
-                        item.productId.name,
-                      );
-                    }}
-                    className="text-xs"
-                    size="sm"
-                  >
-                    🛒 Add to Cart
-                  </Button>
+                    <div className="mt-5 flex flex-col sm:flex-row gap-3">
+                      <Button
+                        disabled={!item.productId.inStock}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addToCartFromWishlist(
+                            item.productId._id,
+                            item.productId.name,
+                          );
+                        }}
+                        className="h-11 flex-1 rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all"
+                      >
+                        <ShoppingCart size={16} className="mr-2" />
+                        Add to Cart
+                      </Button>
 
-                  <button
-  onClick={(e) => {
-    e.stopPropagation();
-    removeItem(item.productId._id);
-  }}
-  className="flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-600 hover:bg-red-100 hover:border-red-300 transition-all duration-200"
->
-  <Trash2 size={16} />
-  <span className="hidden sm:inline text-sm font-medium">
-    Remove
-  </span>
-</button>
+                      <Button
+                        variant="outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeItem(item.productId._id);
+                        }}
+                        className="h-11 flex-1 rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 hover:text-red-700 font-bold transition-all"
+                      >
+                        <Trash2 size={16} className="mr-2" />
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
