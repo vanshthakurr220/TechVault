@@ -3,6 +3,7 @@ import { Order } from "../models/Order.js";
 import { User } from "server/models/User.js";
 import Coupon from "server/models/Coupon.js";
 import { Product } from "server/models/Products.js";
+import { sendOrderConfirmationEmail } from "server/utils/emailService.js";
 
 // ===============================
 // 🛒 PLACE ORDER
@@ -133,19 +134,25 @@ export const createOrder = async (
       if (!product) continue;
 
       product.stockQuantity -= item.quantity;
-
       product.inStock = product.stockQuantity > 0;
-
       product.unitsSold += item.quantity;
-
       product.revenue += item.quantity * item.price;
 
       await product.save();
     }
 
+    try {
+      const emailSent = await sendOrderConfirmationEmail(
+        email,
+        shippingAddress.fullName || "Customer",
+        order,
+      );
+    } catch (emailError) {
+      console.error("Order placed but email failed:", emailError);
+    }
+
     res.status(201).json({
       message: "Order placed successfully",
-
       order,
     });
   } catch (error) {

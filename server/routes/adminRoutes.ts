@@ -21,37 +21,50 @@ import {
   getAllWishlists,
 } from "../controllers/adminController.js";
 
+import { adminAuthorize } from "../middleware/adminAuthorize.js";
+import { protect } from "server/middleware/authMiddleware.js";
+
 const router = express.Router();
 
+// Protect all admin routes
+router.use(protect, adminAuthorize);
+
+// ==============================
 // CONTACTS
+// ==============================
 router.get("/getAllContacts", getAllContacts);
-
 router.put("/marksReadContact/:id/read", markContactRead);
-
 router.delete("/deleteContact/:id", removeContact);
 
-// orders
-router.get("/getAllOrders", getAdminOrders);
-
-router.delete("/orders/:id", removeOrder);
-
-//Products
+// ==============================
+// PRODUCTS
+// ==============================
 router.get("/getAllProducts", getAdminProducts);
 router.post("/addProduct", addProduct);
-router.delete("/deleteProduct/:id", deleteProduct);
 router.put("/updateProduct/:id", updateProduct);
+router.delete("/deleteProduct/:id", deleteProduct);
 
-//User
+// ==============================
+// USERS
+// ==============================
+router.get("/getAllUsers", getAllUsers);
 router.put("/user/:id/make-admin", markAsAdmin);
 router.put("/user/:id/remove-admin", removeAdmin);
-router.get("/getAllUsers", getAllUsers);
 router.delete("/deleteUser/:id", deleteUser);
 
-//Orders
+// ==============================
+// ORDERS
+// ==============================
+router.get("/getAllOrders", getAdminOrders);
+router.delete("/orders/:id", removeOrder);
+
 router.get("/orders/fetchAllOrders", fetchAllOrders);
 router.put("/orders/changeStatusOrder", changeStatusOrder);
 router.put("/orders/changePaymentStatusOrder", changePaymentStatusOrder);
 
+// ==============================
+// REVIEWS & WISHLISTS
+// ==============================
 router.get("/getAllReviews", getAllReviews);
 router.get("/getAllWishlists", getAllWishlists);
 

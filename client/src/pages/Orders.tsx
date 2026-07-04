@@ -151,220 +151,332 @@ export default function Orders() {
 
   const downloadInvoice = (order: Order) => {
     const doc = new jsPDF("p", "mm", "a4");
+
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
+
+    const marginX = 18;
     const invoiceNo = `INV-${new Date().getFullYear()}-${order._id.slice(-6).toUpperCase()}`;
-
-    // ==========================================
-    // 1. HEADER DESIGN (MODERN DARK)
-    // ==========================================
-    doc.setFillColor(15, 23, 42); // Slate 900
-    doc.rect(0, 0, pageWidth, 45, "F");
-
-    // Company Logo/Name
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(28);
-    doc.text(SITE_CONFIG.companyName, 20, 25);
-
-    // Invoice Label
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(148, 163, 184); // Slate 400
-    doc.text("OFFICIAL INVOICE", pageWidth - 20, 18, { align: "right" });
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    doc.text(`# ${invoiceNo}`, pageWidth - 20, 28, { align: "right" });
-
-    // ==========================================
-    // 2. INFO SECTION (SIDE BY SIDE)
-    // ==========================================
-    const startY = 60;
-
-    // Left Side: Company Info
-    doc.setTextColor(15, 23, 42);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "bold");
-    doc.text("FROM:", 20, startY);
-
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(71, 85, 105); // Slate 600
-    doc.text(
-      [
-        SITE_CONFIG.companyName,
-        "New Delhi, India",
-        `Email: support@${SITE_CONFIG.companyName.toLowerCase()}.com`,
-        "Web: www.yourstore.com",
-      ],
-      20,
-      startY + 7,
-    );
-
-    // Right Side: Billing Info
-    doc.setTextColor(15, 23, 42);
-    doc.setFont("helvetica", "bold");
-    doc.text("BILL TO:", 110, startY);
-
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(71, 85, 105);
-    doc.text(
-      [
-        order.shippingAddress.fullName,
-        order.shippingAddress.address,
-        `${order.shippingAddress.city}, ${order.shippingAddress.state}`,
-        `Pincode: ${order.shippingAddress.pincode}`,
-        `Phone: ${order.shippingAddress.phone}`,
-      ],
-      110,
-      startY + 7,
-    );
-
-    // ==========================================
-    // 3. ORDER SUMMARY BAR
-    // ==========================================
-    doc.setFillColor(248, 250, 252); // Slate 50
-    doc.roundedRect(20, 105, pageWidth - 40, 15, 2, 2, "F");
-
-    doc.setFontSize(9);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(100);
-    doc.text("ORDER DATE", 25, 114);
-    doc.text("PAYMENT METHOD", 75, 114);
-    doc.text("ORDER STATUS", 135, 114);
-
-    doc.setTextColor(15, 23, 42);
-    doc.text(new Date(order.createdAt).toLocaleDateString(), 48, 114);
-    doc.text(order.paymentMethod.toUpperCase(), 108, 114);
-    doc.text(order.status.toUpperCase(), 165, 114);
-
-    // ==========================================
-    // 4. PRODUCTS TABLE
-    // ==========================================
-    const tableRows = order.items.map((item, index) => [
-      (index + 1).toString(),
-      item.name || item.productId?.name || "Product",
-      item.quantity.toString(),
-      `Rs. ${item.price.toLocaleString()}`,
-      `Rs. ${(item.quantity * item.price).toLocaleString()}`,
-    ]);
-
-    autoTable(doc, {
-      startY: 130,
-      head: [["#", "Description", "Qty", "Unit Price", "Total"]],
-      body: tableRows,
-      theme: "grid",
-      headStyles: {
-        fillColor: [15, 23, 42],
-        textColor: 255,
-        fontSize: 10,
-        fontStyle: "bold",
-        halign: "center",
-      },
-      columnStyles: {
-        0: { halign: "center", cellWidth: 10 },
-        1: { cellWidth: "auto" },
-        2: { halign: "center", cellWidth: 20 },
-        3: { halign: "right", cellWidth: 35 },
-        4: { halign: "right", cellWidth: 35 },
-      },
-      styles: {
-        fontSize: 9,
-        cellPadding: 5,
-        lineColor: [226, 232, 240], // Slate 200
-      },
-      alternateRowStyles: {
-        fillColor: [248, 250, 252],
-      },
-    });
-
-    // ==========================================
-    // 5. TOTAL CALCULATION BLOCK
-    // ==========================================
-    const finalY = (doc as any).lastAutoTable.finalY || 180;
-    const totalBoxWidth = 70;
-    const totalBoxX = pageWidth - 20 - totalBoxWidth;
 
     const subtotal = order.items.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0,
     );
 
+    const formatMoney = (amount: number) =>
+      `Rs. ${Math.round(amount).toLocaleString("en-IN")}`;
+
+    const formatDate = (date: string | Date) =>
+      new Date(date).toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+
+    const addFooter = () => {
+      const footerY = pageHeight - 28;
+
+      doc.setDrawColor(226, 232, 240);
+      doc.line(marginX, footerY, pageWidth - marginX, footerY);
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+
+      doc.text(
+        `Thank you for shopping with ${SITE_CONFIG.companyName}. This is a computer-generated invoice.`,
+        pageWidth / 2,
+        footerY + 8,
+        { align: "center" },
+      );
+
+      doc.text(
+        `For support: support@${SITE_CONFIG.companyName.toLowerCase()}.com`,
+        pageWidth / 2,
+        footerY + 14,
+        { align: "center" },
+      );
+
+      doc.text(
+        `© ${new Date().getFullYear()} ${SITE_CONFIG.companyName}. All rights reserved.`,
+        pageWidth / 2,
+        footerY + 20,
+        { align: "center" },
+      );
+    };
+
+    // =========================
+    // HEADER
+    // =========================
+    doc.setFillColor(2, 6, 23);
+    doc.rect(0, 0, pageWidth, 42, "F");
+
+    doc.setFillColor(37, 99, 235);
+    doc.roundedRect(marginX, 12, 10, 10, 2, 2, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(24);
+    doc.setTextColor(255, 255, 255);
+    doc.text(SITE_CONFIG.companyName, marginX + 15, 20);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(203, 213, 225);
+    doc.text("Premium Electronics Store", marginX + 15, 27);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.setTextColor(255, 255, 255);
+    doc.text("INVOICE", pageWidth - marginX, 18, { align: "right" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(203, 213, 225);
+    doc.text(invoiceNo, pageWidth - marginX, 26, { align: "right" });
+
+    // =========================
+    // INVOICE META CARD
+    // =========================
+    const metaY = 52;
+
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(marginX, metaY, pageWidth - marginX * 2, 24, 3, 3, "F");
+
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(100, 116, 139);
+
+    doc.text("ORDER DATE", marginX + 8, metaY + 9);
+    doc.text("PAYMENT", marginX + 58, metaY + 9);
+    doc.text("STATUS", marginX + 105, metaY + 9);
+    doc.text("INVOICE NO", marginX + 145, metaY + 9);
+
     doc.setFontSize(10);
+    doc.setTextColor(15, 23, 42);
+
+    doc.text(formatDate(order.createdAt), marginX + 8, metaY + 17);
+    doc.text(order.paymentMethod.toUpperCase(), marginX + 58, metaY + 17);
+
+    doc.setFillColor(
+      order.status === "delivered"
+        ? 22
+        : order.status === "cancelled"
+          ? 239
+          : 245,
+      order.status === "delivered"
+        ? 163
+        : order.status === "cancelled"
+          ? 68
+          : 158,
+      order.status === "delivered"
+        ? 74
+        : order.status === "cancelled"
+          ? 68
+          : 11,
+    );
+    doc.roundedRect(marginX + 105, metaY + 12, 28, 7, 2, 2, "F");
+
+    doc.setFontSize(7);
+    doc.setTextColor(255, 255, 255);
+    doc.text(order.status.toUpperCase(), marginX + 119, metaY + 17, {
+      align: "center",
+    });
+
+    doc.setFontSize(10);
+    doc.setTextColor(15, 23, 42);
+    doc.text(invoiceNo, marginX + 145, metaY + 17);
+
+    // =========================
+    // ADDRESS CARDS
+    // =========================
+    const cardY = 88;
+    const cardW = (pageWidth - marginX * 2 - 8) / 2;
+
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(marginX, cardY, cardW, 44, 3, 3, "FD");
+    doc.roundedRect(marginX + cardW + 8, cardY, cardW, 44, 3, 3, "FD");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(37, 99, 235);
+    doc.text("FROM", marginX + 7, cardY + 9);
+    doc.text("BILL TO", marginX + cardW + 15, cardY + 9);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text(SITE_CONFIG.companyName, marginX + 7, cardY + 18);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    doc.setTextColor(71, 85, 105);
+    doc.text(
+      [
+        "New Delhi, India",
+        `Email: support@${SITE_CONFIG.companyName.toLowerCase()}.com`,
+        "Website: www.techvault.com",
+      ],
+      marginX + 7,
+      cardY + 25,
+    );
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    doc.text(order.shippingAddress.fullName, marginX + cardW + 15, cardY + 18);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
     doc.setTextColor(71, 85, 105);
 
-    // Subtotal
-    doc.text("Subtotal:", totalBoxX, finalY + 15);
-    doc.text(`Rs. ${subtotal.toLocaleString()}`, pageWidth - 20, finalY + 15, {
+    const billingLines = doc.splitTextToSize(
+      `${order.shippingAddress.address}, ${order.shippingAddress.city}, ${order.shippingAddress.state} - ${order.shippingAddress.pincode}`,
+      cardW - 14,
+    );
+
+    doc.text(billingLines, marginX + cardW + 15, cardY + 25);
+    doc.text(
+      `Phone: ${order.shippingAddress.phone}`,
+      marginX + cardW + 15,
+      cardY + 38,
+    );
+
+    // =========================
+    // PRODUCTS TABLE
+    // =========================
+    const tableRows = order.items.map((item, index) => [
+      String(index + 1).padStart(2, "0"),
+      item.name || item.productId?.name || "Product",
+      item.quantity.toString(),
+      formatMoney(item.price),
+      formatMoney(item.quantity * item.price),
+    ]);
+
+    autoTable(doc, {
+      startY: 145,
+      head: [["#", "Product Description", "Qty", "Unit Price", "Amount"]],
+      body: tableRows,
+      theme: "plain",
+      margin: { left: marginX, right: marginX },
+      headStyles: {
+        fillColor: [15, 23, 42],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+        fontSize: 9,
+        cellPadding: 4,
+      },
+      bodyStyles: {
+        fontSize: 9,
+        textColor: [51, 65, 85],
+        cellPadding: 4,
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+      columnStyles: {
+        0: { cellWidth: 14, halign: "center" },
+        1: { cellWidth: 76 },
+        2: { cellWidth: 18, halign: "center" },
+        3: { cellWidth: 34, halign: "right" },
+        4: { cellWidth: 34, halign: "right", fontStyle: "bold" },
+      },
+      didDrawPage: () => {
+        addFooter();
+      },
+    });
+
+    // =========================
+    // TOTAL SUMMARY CARD
+    // =========================
+    let finalY = (doc as any).lastAutoTable.finalY + 12;
+
+    if (finalY > pageHeight - 85) {
+      doc.addPage();
+      finalY = 25;
+    }
+
+    const summaryW = 76;
+    const summaryX = pageWidth - marginX - summaryW;
+
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(summaryX, finalY, summaryW, 52, 3, 3, "FD");
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(71, 85, 105);
+
+    doc.text("Subtotal", summaryX + 7, finalY + 10);
+    doc.text(formatMoney(subtotal), summaryX + summaryW - 7, finalY + 10, {
       align: "right",
     });
 
-    // Discount (if any)
-    if (order.couponDiscount) {
-      doc.setTextColor(16, 185, 129); // Emerald 500
-      doc.text(`Discount (${order.couponCode}):`, totalBoxX, finalY + 22);
+    let rowY = finalY + 19;
+
+    if (order.couponDiscount && order.couponDiscount > 0) {
+      doc.setTextColor(22, 163, 74);
       doc.text(
-        `- Rs. ${order.couponDiscount.toLocaleString()}`,
-        pageWidth - 20,
-        finalY + 22,
-        { align: "right" },
+        `Discount${order.couponCode ? ` (${order.couponCode})` : ""}`,
+        summaryX + 7,
+        rowY,
       );
+      doc.text(
+        `- ${formatMoney(order.couponDiscount)}`,
+        summaryX + summaryW - 7,
+        rowY,
+        {
+          align: "right",
+        },
+      );
+      rowY += 9;
     }
 
-    // Shipping
     doc.setTextColor(71, 85, 105);
-    doc.text("Shipping:", totalBoxX, finalY + 29);
-    doc.text("FREE", pageWidth - 20, finalY + 29, { align: "right" });
+    doc.text("Shipping", summaryX + 7, rowY);
+    doc.text("FREE", summaryX + summaryW - 7, rowY, { align: "right" });
 
-    // Grand Total Line
-    doc.setDrawColor(15, 23, 42);
-    doc.setLineWidth(0.5);
-    doc.line(totalBoxX, finalY + 34, pageWidth - 20, finalY + 34);
+    doc.setDrawColor(203, 213, 225);
+    doc.line(summaryX + 7, finalY + 35, summaryX + summaryW - 7, finalY + 35);
 
-    // Grand Total Amount
-    doc.setTextColor(15, 23, 42);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.text("Grand Total:", totalBoxX, finalY + 42);
+    doc.setFontSize(12);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Grand Total", summaryX + 7, finalY + 45);
     doc.text(
-      `Rs. ${order.totalAmount.toLocaleString()}`,
-      pageWidth - 20,
-      finalY + 42,
-      { align: "right" },
+      formatMoney(order.totalAmount),
+      summaryX + summaryW - 7,
+      finalY + 45,
+      {
+        align: "right",
+      },
     );
 
-    // ==========================================
-    // 6. FOOTER & SIGNATURE
-    // ==========================================
-    const footerY = pageHeight - 40;
+    // =========================
+    // NOTES SECTION
+    // =========================
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(15, 23, 42);
+    doc.text("Notes", marginX, finalY + 10);
 
-    doc.setDrawColor(226, 232, 240);
-    doc.line(20, footerY, pageWidth - 20, footerY);
-
-    doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(148, 163, 184);
+    doc.setFontSize(8.5);
+    doc.setTextColor(100, 116, 139);
 
     doc.text(
       [
-        "Thank you for choosing us! We hope you love your purchase.",
-        `For returns or support, visit our website or contact us at support@${SITE_CONFIG.companyName.toLowerCase()}.com`,
-        `© ${new Date().getFullYear()} ${SITE_CONFIG.companyName}. All Rights Reserved.`,
+        "1. Please keep this invoice for warranty and return purposes.",
+        "2. Items once delivered are subject to the return policy of TechVault.",
+        "3. This invoice is valid without signature as it is system generated.",
       ],
-      pageWidth / 2,
-      footerY + 10,
-      { align: "center" },
+      marginX,
+      finalY + 18,
     );
 
-    // Professional Stamp/Seal (Visual Only)
-    doc.setDrawColor(15, 23, 42);
-    doc.setLineWidth(0.1);
-    doc.circle(pageWidth - 40, footerY + 15, 10, "S");
-    doc.setFontSize(6);
-    doc.text("OFFICIAL", pageWidth - 40, footerY + 14, { align: "center" });
-    doc.text("STAMP", pageWidth - 40, footerY + 17, { align: "center" });
-
+    // =========================
+    // SAVE
+    // =========================
     doc.save(`${invoiceNo}.pdf`);
   };
 

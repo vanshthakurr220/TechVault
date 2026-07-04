@@ -95,14 +95,24 @@ export default function AdminProducts() {
   };
 
   useEffect(() => {
-    fetchProducts();
-    fetchReviews();
-    fetchAllWishlists();
-  }, []);
+  if (adminProducts.length > 0) {
+    setProducts(adminProducts as Product[]);
+    setLoading(false);
+    return;
+  }
+
+  fetchProducts();
+  fetchReviews();
+  fetchAllWishlists();
+}, []);
 
   useEffect(() => {
-    setProducts(adminProducts as Product[]);
-  }, [adminProducts]);
+  setProducts(adminProducts as Product[]);
+
+  if (adminProducts.length > 0) {
+    setLoading(false);
+  }
+}, [adminProducts]);
 
   useEffect(() => {
     setReviews(allReviews || []);

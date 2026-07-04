@@ -26,7 +26,11 @@ import {
 } from "recharts";
 
 export default function AdminHome() {
-  const { fetchDashboardStats: fetchStatsFromContext } = useApp();
+  const {
+    fetchDashboardStats: fetchStatsFromContext,
+    accessToken,
+    authLoading,
+  } = useApp();
 
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -34,15 +38,19 @@ export default function AdminHome() {
   const [stats, setStats] = useState({
     users: 0,
     products: 0,
-    messages: 0,
     orders: 0,
-    wishlists: 0,
     reviews: 0,
+    wishlists: 0,
+    messages: 0,
+    coupons: 0,
   });
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!accessToken) return;
+
     loadDashboard();
-  }, []);
+  }, [authLoading, accessToken]);
 
   const renderActiveShape = (props: any) => {
     const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } =
@@ -97,6 +105,10 @@ export default function AdminHome() {
     {
       name: "Messages",
       value: stats.messages,
+    },
+    {
+      name: "Coupons",
+      value: stats.coupons,
     },
   ];
 
@@ -195,7 +207,7 @@ export default function AdminHome() {
         <Link to="/admin/coupons">
           <StatCard
             title="Coupons"
-            value={stats.reviews}
+            value={stats.coupons}
             icon={<TicketPercent size={24} />}
             loading={loading}
           />

@@ -454,6 +454,19 @@ export const changeStatusOrder = async (
       return;
     }
 
+    try {
+  const user: any = updatedOrder.userId;
+
+  await sendOrderStatusEmail(
+    user?.email || updatedOrder.userId,
+    user?.username || user?.name || updatedOrder.shippingAddress?.fullName || "Customer",
+    updatedOrder,
+    status,
+  );
+} catch (emailError) {
+  console.error("Order status updated but email failed:", emailError);
+}
+
     res.status(200).json({
       message: "Order status updated successfully",
 
@@ -541,6 +554,7 @@ export const getAllReviews = async (
 };
 
 import { Wishlist } from "../models/Wishlist";
+import { sendOrderStatusEmail } from "server/utils/emailService.js";
 
 export const getAllWishlists = async (
   req: Request,

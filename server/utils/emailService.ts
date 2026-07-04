@@ -161,3 +161,182 @@ export const sendOTPEmail = async (
 export const generateOTP = (): string => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
+
+export const sendOrderConfirmationEmail = async (
+  email: string,
+  username: string,
+  order: any,
+): Promise<boolean> => {
+  try {
+    const mailTransporter =
+      process.env.EMAIL_USER && process.env.EMAIL_PASSWORD
+        ? transporter
+        : await createTestTransporter();
+
+    const itemsHtml = order.items
+      .map(
+        (item: any) => `
+          <tr>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb;">${item.name}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align:center;">${item.quantity}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e5e7eb; text-align:right;">₹${item.price}</td>
+          </tr>
+        `,
+      )
+      .join("");
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; background:#f8fafc; padding:24px;">
+        <div style="max-width:600px; margin:auto; background:#ffffff; border-radius:16px; overflow:hidden; border:1px solid #e5e7eb;">
+          <div style="background:#0f172a; color:white; padding:24px;">
+            <h1 style="margin:0; font-size:24px;">TechVault</h1>
+            <p style="margin:8px 0 0; color:#cbd5e1;">Order Confirmation</p>
+          </div>
+
+          <div style="padding:24px;">
+            <h2 style="margin-top:0; color:#111827;">Hi ${username},</h2>
+            <p style="color:#374151; font-size:15px;">Thank you for your order. We have received your order successfully.</p>
+
+            <div style="background:#f1f5f9; padding:16px; border-radius:12px; margin:20px 0;">
+              <p style="margin:0;"><strong>Order ID:</strong> ${order._id}</p>
+              <p style="margin:8px 0 0;"><strong>Payment Method:</strong> ${order.paymentMethod}</p>
+              <p style="margin:8px 0 0;"><strong>Order Status:</strong> ${order.status}</p>
+            </div>
+
+            <table style="width:100%; border-collapse:collapse; margin-top:20px;">
+              <thead>
+                <tr style="background:#f8fafc;">
+                  <th style="padding:10px; text-align:left;">Product</th>
+                  <th style="padding:10px; text-align:center;">Qty</th>
+                  <th style="padding:10px; text-align:right;">Price</th>
+                </tr>
+              </thead>
+              <tbody>${itemsHtml}</tbody>
+            </table>
+
+            <div style="text-align:right; margin-top:20px;">
+              <h2 style="color:#111827;">Total: ₹${order.totalAmount}</h2>
+            </div>
+
+            <p style="color:#64748b; font-size:14px; margin-top:24px;">We will notify you when your order status changes.</p>
+          </div>
+
+          <div style="background:#f8fafc; padding:16px; text-align:center; color:#64748b; font-size:13px;">
+            © ${new Date().getFullYear()} TechVault. All rights reserved.
+          </div>
+        </div>
+      </div>
+    `;
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER || "noreply@techvault.com",
+      to: email,
+      subject: "Your TechVault Order Has Been Placed Successfully",
+      html,
+    };
+
+    await mailTransporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error("Error sending order confirmation email:", error);
+    return false;
+  }
+};
+
+export const sendOrderStatusEmail = async (
+  email: string,
+  username: string,
+  order: any,
+  status: string,
+): Promise<boolean> => {
+  try {
+    const mailTransporter =
+      process.env.EMAIL_USER && process.env.EMAIL_PASSWORD
+        ? transporter
+        : await createTestTransporter();
+
+    const statusColors: Record<string, string> = {
+      pending: "#f59e0b",
+      processing: "#3b82f6",
+      shipped: "#8b5cf6",
+      delivered: "#16a34a",
+      cancelled: "#dc2626",
+    };
+
+    const color = statusColors[status] || "#0f172a";
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;background:#f8fafc;padding:30px;">
+        <div style="max-width:600px;margin:auto;background:#fff;border-radius:14px;border:1px solid #e5e7eb;overflow:hidden;">
+
+          <div style="background:${color};padding:24px;color:white;">
+            <h2 style="margin:0;">TechVault</h2>
+            <p style="margin:8px 0 0;">Order Status Updated</p>
+          </div>
+
+          <div style="padding:24px;">
+            <h2>Hello ${username},</h2>
+
+            <p>Your order status has been updated.</p>
+
+            <div style="background:#f8fafc;padding:18px;border-radius:10px;">
+              <p><strong>Order ID:</strong> ${order._id}</p>
+              <p><strong>Current Status:</strong>
+                <span style="color:${color};font-weight:bold;text-transform:capitalize;">
+                  ${status}
+                </span>
+              </p>
+
+              <p><strong>Payment Status:</strong> ${order.paymentStatus}</p>
+
+              <p><strong>Total:</strong> ₹${order.totalAmount}</p>
+            </div>
+
+            ${
+              status === "processing"
+                ? "<p>We're preparing your order for shipment.</p>"
+                : ""
+            }
+
+            ${
+              status === "shipped"
+                ? "<p>Your order has been shipped and is on its way.</p>"
+                : ""
+            }
+
+            ${
+              status === "delivered"
+                ? "<p>Your order has been delivered successfully. Thank you for shopping with TechVault!</p>"
+                : ""
+            }
+
+            ${
+              status === "cancelled"
+                ? "<p>Your order has been cancelled. If this wasn't expected, please contact our support team.</p>"
+                : ""
+            }
+
+          </div>
+
+          <div style="background:#f1f5f9;padding:16px;text-align:center;font-size:13px;color:#64748b;">
+            © ${new Date().getFullYear()} TechVault
+          </div>
+
+        </div>
+      </div>
+    `;
+
+    await mailTransporter.sendMail({
+      from: `"TechVault" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `Your TechVault Order is ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+      text: `Your order ${order._id} is now ${status}.`,
+      html,
+    });
+
+    return true;
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
+};

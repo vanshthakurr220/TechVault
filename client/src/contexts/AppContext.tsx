@@ -117,6 +117,7 @@ interface AppContextType {
   user: User | null;
   loading: boolean;
   authLoading: boolean;
+  accessToken: string | null;
   theme: "light" | "dark";
   switchable: boolean;
   toggleTheme?: () => void;
@@ -234,6 +235,7 @@ interface AppContextType {
     orders: number;
     wishlists: number;
     reviews: number;
+    coupons: number;
   }>;
   deleteUser: (userId: string) => Promise<void>;
   makeAdmin: (userId: string) => Promise<void>;
@@ -439,6 +441,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setAccessToken(data.accessToken);
+      console.log(data);
 
       setUser(data.user);
       setUserLoggedIn(true);
@@ -1602,84 +1605,111 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   // ========== ADMIN FUNCTIONS ==========
 
+  const adminHeaders = () => ({
+    Authorization: `Bearer ${accessToken}`,
+  });
+
   const fetchAllUsers = useCallback(async () => {
     try {
-      const response = await api("/api/admin/getAllUsers");
+      const response = await api("/api/admin/getAllUsers", {
+        headers: adminHeaders(),
+      });
       const data = await response.json();
       setAllUsers(data.users || data || []);
     } catch (error) {
       console.error("Error fetching users:", error);
       setAllUsers([]);
     }
-  }, []);
+  }, [accessToken]);
 
   const fetchAllOrders = useCallback(async () => {
     try {
-      const response = await api("/api/admin/orders/fetchAllOrders");
+      const response = await api("/api/admin/orders/fetchAllOrders", {
+        headers: adminHeaders(),
+      });
       const data = await response.json();
       setAllOrders(data.orders || data || []);
     } catch (error) {
       console.error("Error fetching orders:", error);
       setAllOrders([]);
     }
-  }, []);
+  }, [accessToken]);
 
   const fetchAllContacts = useCallback(async () => {
     try {
-      const response = await api("/api/admin/getAllContacts");
+      const response = await api("/api/admin/getAllContacts", {
+        headers: adminHeaders(),
+      });
       const data = await response.json();
       setAllContacts(data.contacts || data || []);
     } catch (error) {
       console.error("Error fetching contacts:", error);
       setAllContacts([]);
     }
-  }, []);
+  }, [accessToken]);
 
   const fetchAllReviews = useCallback(async () => {
     try {
-      const response = await api("/api/admin/getAllReviews");
+      const response = await api("/api/admin/getAllReviews", {
+        headers: adminHeaders(),
+      });
       const data = await response.json();
       setAllReviews(data.reviews || data || []);
     } catch (error) {
       console.error("Error fetching reviews:", error);
       setAllReviews([]);
     }
-  }, []);
+  }, [accessToken]);
 
   const fetchAllWishlists = useCallback(async () => {
     try {
-      const response = await api("/api/admin/getAllWishlists");
+      const response = await api("/api/admin/getAllWishlists", {
+        headers: adminHeaders(),
+      });
       const data = await response.json();
       setAllWishlists(data.wishlists || data || []);
     } catch (error) {
       console.error("Error fetching wishlists:", error);
       setAllWishlists([]);
     }
-  }, []);
+  }, [accessToken]);
 
   const fetchAdminProducts = useCallback(async () => {
     // Renamed from fetchAllProducts
     try {
-      const response = await api("/api/admin/getAllProducts");
+      const response = await api("/api/admin/getAllProducts", {
+        headers: adminHeaders(),
+      });
       const data = await response.json();
       setAdminProducts(data.products || data || []); // Updated to setAdminProducts
     } catch (error) {
       console.error("Error fetching admin products:", error);
       setAdminProducts([]);
     }
-  }, []);
+  }, [accessToken]);
 
-  const incrementProductView = useCallback(async (productId: string) => {
-    try {
-      await api(`/api/products/products/${productId}/view`, {
-        method: "PUT",
-      });
-    } catch (error) {
-      console.error("View count update failed:", error);
-    }
-  }, []);
+  const incrementProductView = useCallback(
+    async (productId: string) => {
+      try {
+        await api(`/api/products/products/${productId}/view`, {
+          method: "PUT",
+        });
+      } catch (error) {
+        console.error("View count update failed:", error);
+      }
+    },
+    [accessToken],
+  );
 
   const fetchDashboardStats = useCallback(async () => {
+    if (!accessToken) {
+      throw new Error("Unauthorized");
+    }
+
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+    };
+
     const [
       usersRes,
       productsRes,
@@ -1687,28 +1717,75 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       ordersRes,
       wishlistsRes,
       reviewsRes,
+      couponsRes,
     ] = await Promise.all([
-      api("/api/admin/getAllUsers"),
-      api("/api/admin/getAllProducts"),
-      api("/api/admin/getAllContacts"),
-      api("/api/admin/orders/fetchAllOrders"),
-      api("/api/admin/getAllWishlists"),
-      api("/api/admin/getAllReviews"),
+      api("/api/admin/getAllUsers", { headers }),
+      api("/api/admin/getAllProducts", { headers }),
+      api("/api/admin/getAllContacts", { headers }),
+      api("/api/admin/orders/fetchAllOrders", { headers }),
+      api("/api/admin/getAllWishlists", { headers }),
+      api("/api/admin/getAllReviews", { headers }),
+      api("/api/coupons", { headers }),
     ]);
 
-    const usersData = await usersRes.json();
-    const productsData = await productsRes.json();
-    const messagesData = await messagesRes.json();
-    const ordersData = await ordersRes.json();
-    const wishlistsData = await wishlistsRes.json();
-    const reviewsData = await reviewsRes.json();
+    const [
+      usersData,
+      productsData,
+      messagesData,
+      ordersData,
+      wishlistsData,
+      reviewsData,
+      couponsData,
+    ] = await Promise.all([
+      usersRes.json(),
+      productsRes.json(),
+      messagesRes.json(),
+      ordersRes.json(),
+      wishlistsRes.json(),
+      reviewsRes.json(),
+      couponsRes.json(),
+    ]);
 
-    const users = usersData.users || usersData || [];
-    const products = productsData.products || productsData || [];
-    const messages = messagesData.contacts || messagesData || [];
-    const orders = ordersData.orders || ordersData || [];
-    const wishlists = wishlistsData.wishlists || wishlistsData || [];
-    const reviews = reviewsData.reviews || reviewsData || [];
+    if (
+      !usersRes.ok ||
+      !productsRes.ok ||
+      !messagesRes.ok ||
+      !ordersRes.ok ||
+      !wishlistsRes.ok ||
+      !reviewsRes.ok ||
+      !couponsRes.ok
+    ) {
+      throw new Error(
+        usersData.message ||
+          productsData.message ||
+          messagesData.message ||
+          ordersData.message ||
+          wishlistsData.message ||
+          reviewsData.message ||
+          couponsData.message ||
+          "Failed to fetch dashboard statistics",
+      );
+    }
+
+    const users = Array.isArray(usersData) ? usersData : usersData.users || [];
+    const products = Array.isArray(productsData)
+      ? productsData
+      : productsData.products || [];
+    const messages = Array.isArray(messagesData)
+      ? messagesData
+      : messagesData.contacts || [];
+    const orders = Array.isArray(ordersData)
+      ? ordersData
+      : ordersData.orders || [];
+    const wishlists = Array.isArray(wishlistsData)
+      ? wishlistsData
+      : wishlistsData.wishlists || [];
+    const reviews = Array.isArray(reviewsData)
+      ? reviewsData
+      : reviewsData.reviews || [];
+    const coupons = Array.isArray(couponsData)
+      ? couponsData
+      : couponsData.coupons || [];
 
     setAllUsers(users);
     setAdminProducts(products);
@@ -1716,22 +1793,28 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setAllOrders(orders);
     setAllWishlists(wishlists);
     setAllReviews(reviews);
+    setCoupons(coupons);
 
     return {
-      users: users.length || usersData.count || 0,
-      products: products.length || 0,
-      messages: messages.length || 0,
-      orders: orders.length || 0,
-      wishlists: wishlists.length || 0,
-      reviews: reviews.length || 0,
+      users: users.length,
+      products: products.length,
+      messages: messages.length,
+      orders: orders.length,
+      wishlists: wishlists.length,
+      reviews: reviews.length,
+      coupons: coupons.length,
     };
-  }, []);
+  }, [accessToken]);
 
   const deleteUser = useCallback(
     async (userId: string) => {
       try {
         const response = await api(`/api/admin/deleteUser/${userId}`, {
           method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
         });
 
         if (!response.ok) {
@@ -1753,6 +1836,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       try {
         const response = await api(`/api/admin/user/${userId}/make-admin`, {
           method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
         });
 
         if (!response.ok) {
@@ -1774,6 +1861,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       try {
         const response = await api(`/api/admin/user/${userId}/remove-admin`, {
           method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
         });
 
         if (!response.ok) {
@@ -1795,6 +1886,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       try {
         const response = await api(`/api/admin/deleteContact/${contactId}`, {
           method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
         });
 
         if (!response.ok) {
@@ -1818,6 +1913,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           `/api/admin/marksReadContact/${contactId}/read`,
           {
             method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
           },
         );
 
@@ -1839,7 +1938,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       try {
         const response = await api("/api/admin/orders/changeStatusOrder", {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
           body: JSON.stringify({ id: orderId, status }),
         });
 
@@ -1864,7 +1966,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           "/api/admin/orders/changePaymentStatusOrder",
           {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
             body: JSON.stringify({ id: orderId, paymentStatus }),
           },
         );
@@ -1888,6 +1993,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       try {
         const response = await api(`/api/admin/orders/${orderId}`, {
           method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
         });
 
         if (!response.ok) {
@@ -1979,6 +2088,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       try {
         const response = await api(`/api/admin/deleteProduct/${productId}`, {
           method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
         });
 
         if (!response.ok) {
@@ -2012,6 +2125,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // ========== CONTEXT VALUE ==========
 
   const value: AppContextType = {
+    accessToken,
     sendMobileOTPSignup,
     verifyMobileOTPSignup,
     incrementProductView,

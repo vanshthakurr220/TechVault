@@ -6,7 +6,7 @@ import rateLimit from "express-rate-limit";
 
 export const publicApiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 50000,
+  limit: 500000,
   message: {
     message: "Too many requests. Please try again later.",
   },
