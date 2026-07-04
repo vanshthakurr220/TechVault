@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect, useMemo } from "react";
 import {
   Trash2,
-  CheckCircle,
   Search,
   Mail,
   MailOpen,
@@ -26,10 +25,9 @@ interface ContactMessage {
 }
 
 export default function AdminContacts() {
-  const { allContacts, fetchAllContacts, deleteContact, markContactAsRead } =
-    useApp();
+  const { allContacts, deleteContact, markContactAsRead } = useApp();
   const [messages, setMessages] = useState<ContactMessage[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(
     null,
@@ -37,22 +35,7 @@ export default function AdminContacts() {
   const [filter, setFilter] = useState<"all" | "unread" | "read">("all");
 
   useEffect(() => {
-    fetchContacts();
-  }, []);
-
-  const fetchContacts = async () => {
-    try {
-      setLoading(true);
-      await fetchAllContacts();
-    } catch (error) {
-      console.error("Error fetching contacts:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    setMessages(allContacts as ContactMessage[]);
+    setMessages(Array.isArray(allContacts) ? allContacts : []);
   }, [allContacts]);
 
   const deleteMessage = async (_id: string) => {

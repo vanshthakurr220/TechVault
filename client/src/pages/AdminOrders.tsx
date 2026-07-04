@@ -44,13 +44,12 @@ interface Order {
 export default function AdminOrders() {
   const {
     allOrders,
-    fetchAllOrders,
     updateOrderStatus: updateOrderStatusInContext,
     updatePaymentStatus: updatePaymentStatusInContext,
   } = useApp();
 
   const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("");
@@ -58,23 +57,8 @@ export default function AdminOrders() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
-    fetchOrders();
-  }, []);
-
-  useEffect(() => {
     setOrders(Array.isArray(allOrders) ? (allOrders as Order[]) : []);
   }, [allOrders]);
-
-  const fetchOrders = async () => {
-    try {
-      setLoading(true);
-      await fetchAllOrders();
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const updateOrderStatus = async (
     orderId: string,

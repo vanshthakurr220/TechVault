@@ -32,9 +32,9 @@ interface ProductGroup {
 type ViewMode = "card" | "table";
 
 export default function AdminReviews() {
-  const { allReviews, fetchAllReviews } = useApp();
+  const { allReviews } = useApp();
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("card");
 
@@ -46,22 +46,8 @@ export default function AdminReviews() {
   const [sortBy, setSortBy] = useState<string>("reviewCountDesc");
 
   useEffect(() => {
-    fetchReviews();
-  }, []);
-
-  const fetchReviews = async () => {
-    try {
-      setLoading(true);
-      await fetchAllReviews();
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
     setReviews(allReviews as Review[]);
+    setLoading(false);
   }, [allReviews]);
 
   const getRatingColor = (rating: number) => {

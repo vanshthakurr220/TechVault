@@ -237,6 +237,16 @@ interface AppContextType {
     reviews: number;
     coupons: number;
   }>;
+
+  dashboardStats: {
+  users: number;
+  products: number;
+  orders: number;
+  reviews: number;
+  wishlists: number;
+  messages: number;
+  coupons: number;
+};
   deleteUser: (userId: string) => Promise<void>;
   makeAdmin: (userId: string) => Promise<void>;
   removeAdmin: (userId: string) => Promise<void>;
@@ -328,6 +338,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [allContacts, setAllContacts] = useState<any[]>([]);
   const [allReviews, setAllReviews] = useState<any[]>([]);
   const [allWishlists, setAllWishlists] = useState<any[]>([]);
+
+  const [dashboardStats, setDashboardStats] = useState({
+  users: 0,
+  products: 0,
+  orders: 0,
+  reviews: 0,
+  wishlists: 0,
+  messages: 0,
+  coupons: 0,
+});
 
   // ========== Coupons FUNCTIONS ==========
   // ========== Coupons FUNCTIONS ==========
@@ -1795,15 +1815,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setAllReviews(reviews);
     setCoupons(coupons);
 
-    return {
-      users: users.length,
-      products: products.length,
-      messages: messages.length,
-      orders: orders.length,
-      wishlists: wishlists.length,
-      reviews: reviews.length,
-      coupons: coupons.length,
-    };
+    const stats = {
+  users: users.length,
+  products: products.length,
+  messages: messages.length,
+  orders: orders.length,
+  wishlists: wishlists.length,
+  reviews: reviews.length,
+  coupons: coupons.length,
+};
+
+setDashboardStats(stats);
+
+return stats;
   }, [accessToken]);
 
   const deleteUser = useCallback(
@@ -2111,12 +2135,53 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // ========== INITIAL EFFECTS ==========
 
   useEffect(() => {
-    if (userLoggedIn) {
-      fetchCartCount();
-      fetchWishlistCount();
-      fetchAddresses();
-    }
-  }, [userLoggedIn, fetchCartCount, fetchWishlistCount, fetchAddresses]);
+    if (!userLoggedIn || !user) return;
+
+    const preloadData = async () => {
+      await Promise.allSettled([
+        fetchProducts(),
+        fetchCart(),
+        fetchCartCount(),
+        fetchWishlistItems(),
+        fetchWishlistCount(),
+        fetchAddresses(),
+        fetchOrders(),
+        fetchCoupons(),
+      ]);
+
+      if (user.role === "admin") {
+        await Promise.allSettled([
+          fetchAdminProducts(),
+          fetchAllOrders(),
+          fetchAllUsers(),
+          fetchAllContacts(),
+          fetchAllReviews(),
+          fetchAllWishlists(),
+          fetchDashboardStats(),
+        ]);
+      }
+    };
+
+    preloadData();
+  }, [
+    userLoggedIn,
+    user,
+    fetchProducts,
+    fetchCart,
+    fetchCartCount,
+    fetchWishlistItems,
+    fetchWishlistCount,
+    fetchAddresses,
+    fetchOrders,
+    fetchCoupons,
+    fetchAdminProducts,
+    fetchAllOrders,
+    fetchAllUsers,
+    fetchAllContacts,
+    fetchAllReviews,
+    fetchAllWishlists,
+    fetchDashboardStats,
+  ]);
 
   useEffect(() => {
     restoreSession();
@@ -2125,6 +2190,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // ========== CONTEXT VALUE ==========
 
   const value: AppContextType = {
+    dashboardStats,
     accessToken,
     sendMobileOTPSignup,
     verifyMobileOTPSignup,

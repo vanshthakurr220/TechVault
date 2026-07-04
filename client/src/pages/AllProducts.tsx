@@ -10,13 +10,12 @@ export default function AllProducts() {
   const {
     user,
     products,
-    fetchProducts,
+    wishlistItems,
     addToCart,
     addToWishlist,
     removeFromWishlist,
-    isProductInWishlist,
   } = useApp();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [wishlistStatus, setWishlistStatus] = useState<{
     [key: string]: boolean;
   }>({});
@@ -46,33 +45,22 @@ export default function AllProducts() {
   };
 
   useEffect(() => {
-    const getProducts = async () => {
-      try {
-        await fetchProducts();
-      } catch (error) {
-        console.error("Error fetching products:", error);
-      } finally {
-        setLoading(false);
+    if (!user?.email) {
+      setWishlistStatus({});
+      return;
+    }
+
+    const wishlistMap: { [key: string]: boolean } = {};
+
+    wishlistItems.forEach((item: any) => {
+      const productId = item.productId?._id || item.productId;
+      if (productId) {
+        wishlistMap[productId] = true;
       }
-    };
+    });
 
-    getProducts();
-  }, [fetchProducts]);
-
-  useEffect(() => {
-    const getWishlistStatus = async () => {
-      if (user?.email && products.length > 0) {
-        const wishlistMap: { [key: string]: boolean } = {};
-        for (const product of products) {
-          const inWishlist = await isProductInWishlist(product._id);
-          wishlistMap[product._id] = inWishlist;
-        }
-        setWishlistStatus(wishlistMap);
-      }
-    };
-
-    getWishlistStatus();
-  }, [isProductInWishlist, products, user?.email]);
+    setWishlistStatus(wishlistMap);
+  }, [wishlistItems, user?.email]);
 
   const handleAddToCart = async (productId: string) => {
     try {

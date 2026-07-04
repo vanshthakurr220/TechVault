@@ -27,19 +27,14 @@ type ViewMode = "card" | "table";
 export default function AdminUsers() {
   const {
     allUsers,
-    fetchAllUsers,
     deleteUser: deleteUserFromContext,
     makeAdmin,
     removeAdmin: removeAdminFromContext,
   } = useApp();
   const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("card");
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
 
   const [sortConfig, setSortConfig] = useState<{
     key: keyof User | null;
@@ -49,19 +44,8 @@ export default function AdminUsers() {
     direction: "desc",
   });
 
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      await fetchAllUsers();
-    } catch (error) {
-      console.error("Fetch users error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    setUsers(allUsers as User[]);
+    setUsers(Array.isArray(allUsers) ? (allUsers as User[]) : []);
   }, [allUsers]);
 
   const deleteUser = async (_id: string) => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Trash2,
@@ -32,36 +32,10 @@ interface CartItem {
 }
 
 export default function Cart() {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  const { user, cartItems, getCartItems, updateCartQuantity, removeFromCart } =
-    useApp();
+  const { user, cartItems, updateCartQuantity, removeFromCart } = useApp();
   const items = cartItems as unknown as CartItem[];
-
-  // =========================
-  // FETCH CART
-  // =========================
-
-  const fetchCart = async () => {
-    try {
-      setLoading(true);
-
-      if (!user?.email) {
-        setLoading(false);
-        return;
-      }
-
-      await getCartItems();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCart();
-  }, [getCartItems, user?.email]);
 
   // =========================
   // UPDATE QUANTITY

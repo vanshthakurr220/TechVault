@@ -41,13 +41,11 @@ export default function ProfileWithOTP() {
     user,
     logout,
     addresses,
-    fetchAddresses,
     addAddress,
     updateAddress,
     deleteAddress,
     setDefaultAddress,
     orders,
-    fetchOrders,
     updateProfile,
     changePassword,
     sendOTPEmailChange,
@@ -125,13 +123,6 @@ export default function ProfileWithOTP() {
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
 
   useEffect(() => {
-    if (user?.email) {
-      fetchAddresses();
-      fetchRecentOrders();
-    }
-  }, [user?.email]);
-
-  useEffect(() => {
     const sorted = [...(orders as any[])].sort(
       (a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
@@ -139,14 +130,6 @@ export default function ProfileWithOTP() {
 
     setRecentOrders(sorted.slice(0, 2));
   }, [orders]);
-
-  const fetchRecentOrders = async () => {
-    try {
-      await fetchOrders();
-    } catch (error) {
-      console.error("Error fetching orders:", error);
-    }
-  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({

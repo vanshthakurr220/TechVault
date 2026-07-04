@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Trash2,
@@ -28,41 +28,10 @@ interface WishlistItem {
 }
 
 export default function Wishlist() {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  const {
-    user,
-    wishlistItems,
-    getWishlistItems,
-    removeFromWishlist,
-    addToCart,
-  } = useApp();
+  const { user, wishlistItems, removeFromWishlist, addToCart } = useApp();
   const items = wishlistItems as WishlistItem[];
-
-  // =========================
-  // FETCH WISHLIST
-  // =========================
-
-  const fetchWishlist = async () => {
-    try {
-      setLoading(true);
-
-      if (!user?.email) {
-        setLoading(false);
-        return;
-      }
-
-      await getWishlistItems();
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchWishlist();
-  }, [getWishlistItems, user?.email]);
 
   // =========================
   // REMOVE ITEM FROM WISHLIST

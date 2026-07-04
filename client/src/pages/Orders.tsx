@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Package,
   Calendar,
@@ -20,7 +20,6 @@ import autoTable from "jspdf-autotable";
 import { SITE_CONFIG } from "@/config/siteConfig";
 import { useApp } from "@/contexts/AppContext";
 import { cn } from "@/lib/utils";
-import Loader from "@/components/Loader";
 
 interface Order {
   _id: string;
@@ -65,34 +64,12 @@ interface Order {
 }
 
 export default function Orders() {
-  const {
-    user,
-    orders: contextOrders,
-    fetchOrders: fetchUserOrders,
-  } = useApp();
+  const { orders: contextOrders } = useApp();
   const orders = contextOrders as unknown as Order[];
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>(
     {},
   );
-
-  useEffect(() => {
-    fetchOrders();
-  }, []);
-
-  const fetchOrders = async () => {
-    try {
-      if (!user?.email) {
-        setLoading(false);
-        return;
-      }
-      await fetchUserOrders();
-    } catch (error) {
-      console.error("Fetch orders error:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const toggleExpand = (orderId: string) => {
     setExpandedOrders((prev) => ({
@@ -479,10 +456,6 @@ export default function Orders() {
     // =========================
     doc.save(`${invoiceNo}.pdf`);
   };
-
-  if (loading) {
-    return <Loader text="Retrieving orders..." variant="page" />;
-  }
 
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20">

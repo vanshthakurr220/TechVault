@@ -55,30 +55,15 @@ interface UserGroupedWishlist {
 type ViewMode = "card" | "table";
 
 export default function AdminWishlists() {
-  const { allWishlists, fetchAllWishlists } = useApp();
+  const { allWishlists } = useApp();
   const [wishlistItems, setWishlistItems] = useState<WishlistRow[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("card");
 
   const [selectedUser, setSelectedUser] = useState<UserGroupedWishlist | null>(
     null,
   );
-
-  useEffect(() => {
-    fetchWishlists();
-  }, []);
-
-  const fetchWishlists = async () => {
-    try {
-      setLoading(true);
-      await fetchAllWishlists();
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     const flattenedData: WishlistRow[] =
@@ -94,6 +79,7 @@ export default function AdminWishlists() {
       ) || [];
 
     setWishlistItems(flattenedData);
+    setLoading(false);
   }, [allWishlists]);
 
   const groupedWishlists = useMemo(() => {

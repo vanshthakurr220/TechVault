@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Search, Grid3x3, List, TicketPercent } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/contexts/AppContext";
@@ -22,14 +22,10 @@ export default function AdminCoupons() {
   const { coupons, fetchCoupons, updateCoupon, deleteCoupon, createCoupon } =
     useApp();
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [viewMode, setViewMode] = useState<ViewMode>("card");
-
-  useEffect(() => {
-    loadCoupons();
-  }, []);
 
   const toggleCouponStatus = async (coupon: Coupon) => {
     const result = await Swal.fire({
@@ -272,17 +268,6 @@ export default function AdminCoupons() {
       } else {
       }
     } catch {}
-  };
-
-  const loadCoupons = async () => {
-    try {
-      setLoading(true);
-      await fetchCoupons();
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const editCoupon = async (coupon: Coupon) => {

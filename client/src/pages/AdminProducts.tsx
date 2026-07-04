@@ -57,9 +57,7 @@ export default function AdminProducts() {
     adminProducts,
     allReviews,
     fetchAdminProducts,
-    fetchAllReviews,
     allWishlists,
-    fetchAllWishlists,
     addProduct: addProductInContext,
     addingProduct,
     updateProduct: updateProductInContext,
@@ -67,7 +65,7 @@ export default function AdminProducts() {
   } = useApp();
   const [searchTerm, setSearchTerm] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [reviews, setReviews] = useState<any[]>([]);
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [sortConfig, setSortConfig] = useState<SortConfig>({
@@ -86,48 +84,15 @@ export default function AdminProducts() {
     }));
   };
 
-  const fetchReviews = async () => {
-    try {
-      await fetchAllReviews();
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
   useEffect(() => {
-  if (adminProducts.length > 0) {
     setProducts(adminProducts as Product[]);
     setLoading(false);
-    return;
-  }
-
-  fetchProducts();
-  fetchReviews();
-  fetchAllWishlists();
-}, []);
-
-  useEffect(() => {
-  setProducts(adminProducts as Product[]);
-
-  if (adminProducts.length > 0) {
-    setLoading(false);
-  }
-}, [adminProducts]);
+  }, [adminProducts]);
 
   useEffect(() => {
     setReviews(allReviews || []);
   }, [allReviews]);
 
-  const fetchProducts = async () => {
-    try {
-      setLoading(true);
-      await fetchAdminProducts();
-    } catch (error) {
-      console.error("Error fetching products:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const sortedProducts = useMemo(() => {
     const filteredItems = products.filter((product) => {
