@@ -10,6 +10,61 @@ import Review from "server/models/Review.js";
 // CONTACTS
 // ===================================
 
+// ===============================
+// 📧 REPLY TO CONTACT MESSAGE
+// ===============================
+export const replyToContactMessage = async (req: Request, res: Response) => {
+  try {
+    const { contactId, replyMessage } = req.body;
+
+    if (!contactId || !replyMessage?.trim()) {
+      return res.status(400).json({
+        message: "Contact ID and reply message are required",
+      });
+    }
+
+    const contact = await Contact.findById(contactId);
+
+    if (!contact) {
+      return res.status(404).json({
+        message: "Contact message not found",
+      });
+    }
+
+    const emailSent = await sendContactReplyEmail(
+      contact.email,
+      contact.name,
+      contact.message,
+      replyMessage,
+    );
+
+    if (!emailSent) {
+      return res.status(500).json({
+        message: "Failed to send reply email",
+      });
+    }
+
+    contact.replies.push({
+      message: replyMessage,
+    });
+
+    contact.isRead = true;
+
+    await contact.save();
+
+    res.status(200).json({
+      message: "Reply sent successfully",
+      contact,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Internal server error",
+    });
+  }
+};
+
 // GET ALL CONTACTS
 export const getAllContacts = async (
   req: Request,
@@ -345,7 +400,7 @@ export const removeAdmin = async (req: Request, res: Response) => {
 export const getAllUsers = async (req: Request, res: Response) => {
   try {
     const users = await User.find()
-      .select("username email mobile role createdAt")
+      .select("username email mobile role createdAt addresses")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -455,17 +510,20 @@ export const changeStatusOrder = async (
     }
 
     try {
-  const user: any = updatedOrder.userId;
+      const user: any = updatedOrder.userId;
 
-  await sendOrderStatusEmail(
-    user?.email || updatedOrder.userId,
-    user?.username || user?.name || updatedOrder.shippingAddress?.fullName || "Customer",
-    updatedOrder,
-    status,
-  );
-} catch (emailError) {
-  console.error("Order status updated but email failed:", emailError);
-}
+      await sendOrderStatusEmail(
+        user?.email || updatedOrder.userId,
+        user?.username ||
+          user?.name ||
+          updatedOrder.shippingAddress?.fullName ||
+          "Customer",
+        updatedOrder,
+        status,
+      );
+    } catch (emailError) {
+      console.error("Order status updated but email failed:", emailError);
+    }
 
     res.status(200).json({
       message: "Order status updated successfully",
@@ -554,7 +612,10 @@ export const getAllReviews = async (
 };
 
 import { Wishlist } from "../models/Wishlist";
-import { sendOrderStatusEmail } from "server/utils/emailService.js";
+import {
+  sendContactReplyEmail,
+  sendOrderStatusEmail,
+} from "server/utils/emailService.js";
 
 export const getAllWishlists = async (
   req: Request,

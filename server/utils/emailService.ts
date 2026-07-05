@@ -340,3 +340,120 @@ export const sendOrderStatusEmail = async (
     return false;
   }
 };
+
+export const sendContactReplyEmail = async (
+  email: string,
+  customerName: string,
+  originalMessage: string,
+  replyMessage: string,
+): Promise<boolean> => {
+  try {
+    const mailTransporter =
+      process.env.EMAIL_USER && process.env.EMAIL_PASSWORD
+        ? transporter
+        : await createTestTransporter();
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;background:#f8fafc;padding:30px;">
+        <div style="max-width:650px;margin:auto;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #e5e7eb;">
+
+          <div style="background:#0f172a;padding:28px;color:white;">
+            <h1 style="margin:0;font-size:28px;">TechVault</h1>
+            <p style="margin-top:8px;color:#cbd5e1;">
+              Customer Support
+            </p>
+          </div>
+
+          <div style="padding:32px;">
+
+            <h2 style="margin-top:0;color:#111827;">
+              Hello ${customerName},
+            </h2>
+
+            <p style="color:#475569;font-size:15px;line-height:1.8;">
+              Thank you for contacting <strong>TechVault</strong>.
+              Below is our response regarding your enquiry.
+            </p>
+
+            <div style="
+              margin-top:28px;
+              border-left:4px solid #0f172a;
+              background:#f8fafc;
+              padding:20px;
+              border-radius:12px;
+            ">
+              <h3 style="margin-top:0;color:#111827;">
+                Our Reply
+              </h3>
+
+              <p style="
+                white-space:pre-wrap;
+                color:#374151;
+                line-height:1.8;
+              ">
+                ${replyMessage}
+              </p>
+            </div>
+
+            <div style="
+              margin-top:28px;
+              background:#f1f5f9;
+              padding:20px;
+              border-radius:12px;
+            ">
+              <h3 style="margin-top:0;color:#111827;">
+                Your Original Message
+              </h3>
+
+              <p style="
+                white-space:pre-wrap;
+                color:#64748b;
+                line-height:1.8;
+              ">
+                ${originalMessage}
+              </p>
+            </div>
+
+            <p style="
+              margin-top:32px;
+              color:#475569;
+              line-height:1.8;
+            ">
+              If you have any additional questions, simply reply to this email.
+              We'll be happy to assist you.
+            </p>
+
+            <p style="margin-top:30px;">
+              Regards,<br>
+              <strong>TechVault Support Team</strong>
+            </p>
+
+          </div>
+
+          <div style="
+            background:#f8fafc;
+            text-align:center;
+            padding:18px;
+            color:#94a3b8;
+            font-size:13px;
+          ">
+            © ${new Date().getFullYear()} TechVault. All rights reserved.
+          </div>
+
+        </div>
+      </div>
+    `;
+
+    await mailTransporter.sendMail({
+      from: `"TechVault Support" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: "Re: Your message to TechVault",
+      html,
+    });
+
+    return true;
+  } catch (error) {
+    console.error("Reply email error:", error);
+    return false;
+  }
+};

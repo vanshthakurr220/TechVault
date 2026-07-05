@@ -19,6 +19,7 @@ import {
   changePaymentStatusOrder,
   getAllReviews,
   getAllWishlists,
+  replyToContactMessage,
 } from "../controllers/adminController.js";
 
 import { adminAuthorize } from "../middleware/adminAuthorize.js";
@@ -27,13 +28,15 @@ import { protect } from "server/middleware/authMiddleware.js";
 const router = express.Router();
 
 // Protect all admin routes
-router.use(protect, adminAuthorize);
+router.use(protect as express.RequestHandler);
+router.use(adminAuthorize as express.RequestHandler);
 
 // ==============================
 // CONTACTS
 // ==============================
 router.get("/getAllContacts", getAllContacts);
 router.put("/marksReadContact/:id/read", markContactRead);
+router.post("/replyContact", replyToContactMessage);
 router.delete("/deleteContact/:id", removeContact);
 
 // ==============================

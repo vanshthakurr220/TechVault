@@ -7,6 +7,18 @@ import {
   Search,
   Grid3x3,
   List,
+  X,
+  UserCircle,
+  Mail,
+  Phone,
+  Shield,
+  Calendar,
+  Hash,
+  MapPin,
+  ShoppingBag,
+  Heart,
+  Star,
+  Clock,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { useApp } from "@/contexts/AppContext";
@@ -20,6 +32,10 @@ interface User {
   mobile: string;
   role: string;
   createdAt: string;
+  addresses?: any[];
+  ordersCount?: number;
+  wishlistCount?: number;
+  reviewsCount?: number;
 }
 
 type ViewMode = "card" | "table";
@@ -35,6 +51,7 @@ export default function AdminUsers() {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("card");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   const [sortConfig, setSortConfig] = useState<{
     key: keyof User | null;
@@ -156,8 +173,8 @@ export default function AdminUsers() {
     .sort((a, b) => {
       if (!sortConfig.key) return 0;
 
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
+      const aValue = a[sortConfig.key] ?? "";
+      const bValue = b[sortConfig.key] ?? "";
 
       if (aValue < bValue) {
         return sortConfig.direction === "asc" ? -1 : 1;
@@ -188,6 +205,7 @@ export default function AdminUsers() {
       duration-300
       overflow-hidden
     "
+      onClick={() => setSelectedUser(user)}
     >
       {/* Card Header */}
       <div className="h-20 bg-linear-to-r from-[#1e3a8a] via-[#1e48a3] to-[#0a1830]" />
@@ -241,7 +259,10 @@ export default function AdminUsers() {
         <div className="mt-6 flex gap-2">
           {user.role === "admin" ? (
             <button
-              onClick={() => removeAdmin(user._id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                removeAdmin(user._id);
+              }}
               className="
               flex-1
               py-2
@@ -258,7 +279,10 @@ export default function AdminUsers() {
             </button>
           ) : (
             <button
-              onClick={() => toggleAdmin(user._id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleAdmin(user._id);
+              }}
               className="
               flex-1
               py-2
@@ -276,7 +300,10 @@ export default function AdminUsers() {
           )}
 
           <button
-            onClick={() => deleteUser(user._id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteUser(user._id);
+            }}
             className="
             h-10
             w-10
@@ -349,6 +376,7 @@ export default function AdminUsers() {
           {sortedUsers.map((user) => (
             <tr
               key={user._id}
+              onClick={() => setSelectedUser(user)}
               className="border-b hover:bg-slate-50 transition-colors"
             >
               <td className="px-6 py-4">
@@ -387,14 +415,20 @@ export default function AdminUsers() {
                 <div className="flex gap-2 justify-center">
                   {user.role === "admin" ? (
                     <button
-                      onClick={() => removeAdmin(user._id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        removeAdmin(user._id);
+                      }}
                       className="px-3 py-1 rounded-lg bg-yellow-100 text-yellow-800 hover:bg-yellow-200 transition text-xs font-medium"
                     >
                       Remove Admin
                     </button>
                   ) : (
                     <button
-                      onClick={() => toggleAdmin(user._id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleAdmin(user._id);
+                      }}
                       className="px-3 py-1 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 transition text-xs font-medium"
                     >
                       Make Admin
@@ -402,7 +436,10 @@ export default function AdminUsers() {
                   )}
 
                   <button
-                    onClick={() => deleteUser(user._id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteUser(user._id);
+                    }}
                     className="h-9 w-9 flex items-center justify-center rounded-lg border hover:bg-red-50 transition"
                   >
                     <Trash2 size={16} className="text-red-600" />
@@ -540,6 +577,111 @@ export default function AdminUsers() {
         </div>
       ) : (
         renderUserTable()
+      )}
+
+      {selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/60 backdrop-blur-md p-3 sm:p-5 pt-16 sm:pt-20">
+          <div className="w-full max-w-3xl overflow-hidden rounded-[1.75rem] bg-white shadow-2xl">
+            <div className="relative bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 px-5 py-6 sm:px-7">
+              <button
+                onClick={() => setSelectedUser(null)}
+                className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white hover:text-slate-950"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="flex items-center gap-4 pr-12">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white text-2xl font-black text-slate-950 shadow-lg">
+                  {selectedUser.username?.charAt(0).toUpperCase()}
+                </div>
+
+                <div className="min-w-0">
+                  <h3 className="truncate text-xl font-black text-white sm:text-2xl">
+                    {selectedUser.username}
+                  </h3>
+                  <p className="mt-1 break-all text-sm font-medium text-slate-300">
+                    {selectedUser.email}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="max-h-[75vh] overflow-y-auto bg-slate-50 p-4 sm:p-7">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {[
+                  { label: "Email", value: selectedUser.email, icon: Mail },
+                  {
+                    label: "Mobile",
+                    value: selectedUser.mobile || "N/A",
+                    icon: Phone,
+                  },
+                  { label: "Role", value: selectedUser.role, icon: Shield },
+                  {
+                    label: "Joined",
+                    value: new Date(selectedUser.createdAt).toLocaleDateString(
+                      "en-IN",
+                      {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      },
+                    ),
+                    icon: Calendar,
+                  },
+                  { label: "User ID", value: selectedUser._id, icon: Hash },
+                  {
+                    label: "Addresses",
+                    value: selectedUser.addresses?.length ?? 0,
+                    icon: MapPin,
+                  },
+                  {
+                    label: "Orders",
+                    value: selectedUser.ordersCount ?? 0,
+                    icon: ShoppingBag,
+                  },
+                  {
+                    label: "Wishlist Items",
+                    value: selectedUser.wishlistCount ?? 0,
+                    icon: Heart,
+                  },
+                  {
+                    label: "Reviews",
+                    value: selectedUser.reviewsCount ?? 0,
+                    icon: Star,
+                  },
+                ].map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <div
+                      key={item.label}
+                      className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                    >
+                      <div className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-slate-400">
+                        <Icon size={15} />
+                        {item.label}
+                      </div>
+
+                      <p className="break-words text-sm font-bold text-slate-800">
+                        {item.value}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="border-t bg-white p-4 sm:p-5">
+              <Button
+                variant="outline"
+                onClick={() => setSelectedUser(null)}
+                className="h-11 w-full rounded-xl font-black hover:bg-slate-950 hover:text-white"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

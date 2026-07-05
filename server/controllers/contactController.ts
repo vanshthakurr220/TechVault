@@ -80,6 +80,7 @@ export const markContactAsRead = async (req: Request, res: Response) => {
   }
 };
 
+
 // ===============================
 // 🗑️ DELETE CONTACT
 // ===============================
