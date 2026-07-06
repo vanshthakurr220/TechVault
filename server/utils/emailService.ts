@@ -6,7 +6,7 @@ dotenv.config();
 // For production, use environment variables for credentials
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 465,
+  port: 587,
   secure: true,
   family: 4,
   auth: {
