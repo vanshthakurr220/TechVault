@@ -239,14 +239,14 @@ interface AppContextType {
   }>;
 
   dashboardStats: {
-  users: number;
-  products: number;
-  orders: number;
-  reviews: number;
-  wishlists: number;
-  messages: number;
-  coupons: number;
-};
+    users: number;
+    products: number;
+    orders: number;
+    reviews: number;
+    wishlists: number;
+    messages: number;
+    coupons: number;
+  };
   deleteUser: (userId: string) => Promise<void>;
   makeAdmin: (userId: string) => Promise<void>;
   removeAdmin: (userId: string) => Promise<void>;
@@ -340,14 +340,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [allWishlists, setAllWishlists] = useState<any[]>([]);
 
   const [dashboardStats, setDashboardStats] = useState({
-  users: 0,
-  products: 0,
-  orders: 0,
-  reviews: 0,
-  wishlists: 0,
-  messages: 0,
-  coupons: 0,
-});
+    users: 0,
+    products: 0,
+    orders: 0,
+    reviews: 0,
+    wishlists: 0,
+    messages: 0,
+    coupons: 0,
+  });
 
   // ========== Coupons FUNCTIONS ==========
   // ========== Coupons FUNCTIONS ==========
@@ -1816,18 +1816,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setCoupons(coupons);
 
     const stats = {
-  users: users.length,
-  products: products.length,
-  messages: messages.length,
-  orders: orders.length,
-  wishlists: wishlists.length,
-  reviews: reviews.length,
-  coupons: coupons.length,
-};
+      users: users.length,
+      products: products.length,
+      messages: messages.length,
+      orders: orders.length,
+      wishlists: wishlists.length,
+      reviews: reviews.length,
+      coupons: coupons.length,
+    };
 
-setDashboardStats(stats);
+    setDashboardStats(stats);
 
-return stats;
+    return stats;
   }, [accessToken]);
 
   const deleteUser = useCallback(
@@ -2186,6 +2186,9 @@ return stats;
   useEffect(() => {
     restoreSession();
   }, [restoreSession]);
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   // ========== CONTEXT VALUE ==========
 

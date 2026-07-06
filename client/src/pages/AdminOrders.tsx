@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 interface Order {
   _id: string;
   userId: string;
+  email: string;
   items: {
     name?: string;
     quantity: number;
@@ -160,9 +161,12 @@ export default function AdminOrders() {
         const customerName = order.shippingAddress?.fullName || "";
         const phone = order.shippingAddress?.phone || "";
 
+        const email = order.userId || "";
+
         const matchesSearch =
           order._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
           customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          email.toLowerCase().includes(searchTerm.toLowerCase()) ||
           phone.includes(searchTerm);
 
         const matchesStatus =
@@ -408,6 +412,9 @@ export default function AdminOrders() {
                         {order.shippingAddress?.fullName || "N/A"}
                       </p>
                       <p className="text-xs text-muted-foreground">
+                        {order.userId || "N/A"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
                         {order.shippingAddress?.phone || "N/A"}
                       </p>
                     </td>
@@ -517,6 +524,9 @@ export default function AdminOrders() {
                 <p className="text-sm font-bold">
                   {order.shippingAddress?.fullName || "N/A"}
                 </p>
+                <p className="text-xs text-muted-foreground break-all">
+                  {order.userId || "N/A"}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {order.shippingAddress?.phone || "N/A"}
                 </p>
@@ -604,6 +614,9 @@ export default function AdminOrders() {
                     </h4>
                     <p className="text-sm font-semibold">
                       {selectedOrder.shippingAddress?.fullName || "N/A"}
+                    </p>
+                    <p className="text-sm text-slate-600 break-all">
+                      {selectedOrder.userId || "N/A"}
                     </p>
                     <p className="text-sm text-slate-600">
                       {selectedOrder.shippingAddress?.phone || "N/A"}

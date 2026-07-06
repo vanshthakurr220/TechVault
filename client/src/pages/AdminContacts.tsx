@@ -657,7 +657,9 @@ export default function AdminContacts() {
 
               <div className="relative flex items-start justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-4">
-                  <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-lg font-black shadow-lg sm:h-14 sm:w-14 sm:text-xl ${getAvatarColor(selectedMessage.email)}`}>
+                  <div
+                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-lg font-black shadow-lg sm:h-14 sm:w-14 sm:text-xl ${getAvatarColor(selectedMessage.email)}`}
+                  >
                     {selectedMessage.name.charAt(0).toUpperCase()}
                   </div>
 
@@ -822,11 +824,6 @@ export default function AdminContacts() {
                                     <p className="text-sm font-black text-slate-800">
                                       TechVault Support
                                     </p>
-                                    {sortedReplies.map((reply, index) => (
-                                      <p className="text-xs font-semibold text-slate-400">
-                                        Reply #{sortedReplies.length - index}
-                                      </p>
-                                    ))}
                                   </div>
                                 </div>
 
