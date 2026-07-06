@@ -353,8 +353,9 @@ export const sendContactReplyEmail = async (
     ? transporter
     : await createTestTransporter();
 
-console.log("EMAIL_USER exists:", !!process.env.EMAIL_USER);
+console.log("EMAIL_USER:", process.env.EMAIL_USER);
 console.log("EMAIL_PASSWORD exists:", !!process.env.EMAIL_PASSWORD);
+console.log("Sending email to:", email);
 
     const html = `
       <div style="font-family:Arial,sans-serif;background:#f8fafc;padding:30px;">
