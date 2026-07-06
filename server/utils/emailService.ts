@@ -349,9 +349,12 @@ export const sendContactReplyEmail = async (
 ): Promise<boolean> => {
   try {
     const mailTransporter =
-      process.env.EMAIL_USER && process.env.EMAIL_PASSWORD
-        ? transporter
-        : await createTestTransporter();
+  process.env.EMAIL_USER && process.env.EMAIL_PASSWORD
+    ? transporter
+    : await createTestTransporter();
+
+console.log("EMAIL_USER exists:", !!process.env.EMAIL_USER);
+console.log("EMAIL_PASSWORD exists:", !!process.env.EMAIL_PASSWORD);
 
     const html = `
       <div style="font-family:Arial,sans-serif;background:#f8fafc;padding:30px;">
