@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { api } from "@/lib/api";
 import { useState, useEffect, useMemo } from "react";
 import {
   Trash2,
@@ -152,7 +153,7 @@ export default function AdminContacts() {
     try {
       setSendingReply(true);
 
-      const response = await fetch("/api/admin/replyContact", {
+      const response = await api("/api/admin/replyContact", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
