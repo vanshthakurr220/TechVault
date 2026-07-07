@@ -978,7 +978,8 @@ export default function AdminUsers() {
                 </div>
 
                 <div className="border-t bg-white p-4 sm:p-5">
-                  <div className="flex flex-col gap-3 sm:flex-row">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                    {/* Export */}
                     <div className="relative w-full sm:w-auto">
                       <Button
                         onClick={() => setShowExportMenu((prev) => !prev)}
@@ -991,19 +992,21 @@ export default function AdminUsers() {
                         <div className="absolute bottom-13 left-0 z-20 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl sm:w-44">
                           <button
                             onClick={exportUserCSV}
-                            className="block w-full px-4 py-3 text-left text-sm font-bold text-slate-700 hover:bg-slate-100"
+                            className="block w-full px-4 py-3 text-left text-sm font-bold hover:bg-slate-100"
                           >
                             CSV
                           </button>
+
                           <button
                             onClick={exportUserExcel}
-                            className="block w-full px-4 py-3 text-left text-sm font-bold text-slate-700 hover:bg-slate-100"
+                            className="block w-full px-4 py-3 text-left text-sm font-bold hover:bg-slate-100"
                           >
                             Excel
                           </button>
+
                           <button
                             onClick={exportUserPDF}
-                            className="block w-full px-4 py-3 text-left text-sm font-bold text-slate-700 hover:bg-slate-100"
+                            className="block w-full px-4 py-3 text-left text-sm font-bold hover:bg-slate-100"
                           >
                             PDF
                           </button>
@@ -1011,6 +1014,36 @@ export default function AdminUsers() {
                       )}
                     </div>
 
+                    {/* Make / Remove Admin */}
+                    {selectedUser.role === "admin" ? (
+                      <Button
+                        onClick={() => removeAdmin(selectedUser._id)}
+                        className="h-11 rounded-xl bg-yellow-500 px-5 font-bold text-white hover:bg-yellow-600"
+                      >
+                        Remove Admin
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => toggleAdmin(selectedUser._id)}
+                        className="h-11 rounded-xl bg-blue-600 px-5 font-bold text-white hover:bg-blue-700"
+                      >
+                        Make Admin
+                      </Button>
+                    )}
+
+                    {/* Delete */}
+                    <Button
+                      onClick={() => {
+                        setSelectedUser(null);
+                        deleteUser(selectedUser._id);
+                      }}
+                      className="h-11 rounded-xl bg-red-600 px-5 font-bold text-white hover:bg-red-700"
+                    >
+                      <Trash2 size={17} className="mr-2" />
+                      Delete User
+                    </Button>
+
+                    {/* Close */}
                     <Button
                       variant="outline"
                       onClick={() => setSelectedUser(null)}
