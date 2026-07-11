@@ -173,18 +173,18 @@ export default function ProductDetail() {
     }
   };
 
-  //! useEffect(() => {
-  //!   const checkWishlist = async () => {
-  //!     if (!product?._id || !user?.email) return;
-  //!     try {
-  //!       const exists = await isProductInWishlist(product._id);
-  //!       setIsWishlisted(exists);
-  //!     } catch (error) {
-  //!       console.error("Wishlist check failed:", error);
-  //!     }
-  //!   };
-  //!   checkWishlist();
-  //! }, [product?._id, user?.email]);
+  useEffect(() => {
+    const checkWishlist = async () => {
+      if (!product?._id || !user?.email) return;
+      try {
+        const exists = await isProductInWishlist(product._id);
+        setIsWishlisted(exists);
+      } catch (error) {
+        console.error("Wishlist check failed:", error);
+      }
+    };
+    checkWishlist();
+  }, [product?._id, user?.email]);
 
   const toggleWishlist = async () => {
     if (!product || !user?.email) {
