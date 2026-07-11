@@ -138,7 +138,7 @@ export default function Home() {
               >
                 <a href="/products" className="inline-block">
                   <Button
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-primary/50 hover:scale-105 active:scale-95"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-primary/50 hover:scale-105 active:scale-95 font-bold"
                     size="lg"
                   >
                     <span className="flex items-center gap-2">
@@ -153,7 +153,7 @@ export default function Home() {
                 <a href="#features" className="inline-block">
                   <Button
                     variant="outline"
-                    className="border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 hover:scale-105 active:scale-95"
+                    className="border-border/50 hover:border-primary/50 hover:bg-primary/5 transition-all duration-300 hover:scale-105 active:scale-95 font-bold"
                     size="lg"
                   >
                     Learn More
@@ -350,7 +350,7 @@ export default function Home() {
             >
               <a href="/products" className="inline-block">
                 <Button
-                  className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-primary/50 hover:scale-105 active:scale-95"
+                  className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 group relative overflow-hidden transition-all duration-300 hover:shadow-lg hover:shadow-primary/50 hover:scale-105 active:scale-95 font-bold"
                   size="lg"
                 >
                   <span className="flex items-center gap-2">
@@ -365,7 +365,7 @@ export default function Home() {
               <a href="#features" className="inline-block">
                 <Button
                   variant="outline"
-                  className="border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10 transition-all duration-300 hover:scale-105 active:scale-95"
+                  className="border-primary-foreground/50 text-primary-foreground hover:bg-primary-foreground/10 transition-all duration-300 hover:scale-105 active:scale-95 font-bold"
                   size="lg"
                 >
                   Learn More

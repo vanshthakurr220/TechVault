@@ -263,9 +263,10 @@ focus:border-primary
             className="mt-16 animate-slide-up"
             style={{ animationDelay: "100ms" }}
           >
-            <h2 className="text-3xl font-bold monospace mb-8">
+            <h2 className="text-3xl font-bold mb-8">
               Frequently Asked Questions
             </h2>
+
             <div className="space-y-4">
               {[
                 {
@@ -288,19 +289,21 @@ focus:border-primary
                 <details
                   key={index}
                   className="
-                              bg-card
-                              border
-                              border-border
-                              rounded-2xl
-                              px-6
-                              py-5
-                              hover:border-primary/30
-                              transition-all
-                              duration-200        "
+          bg-card
+          border
+          border-border
+          rounded-2xl
+          px-6
+          py-5
+          hover:border-primary/30
+          transition-all
+          duration-200
+        "
                 >
-                  <summary className="font-bold monospace text-lg group-open:text-primary transition-colors duration-200">
+                  <summary className="font-bold text-lg group-open:text-primary transition-colors duration-200">
                     {item.q}
                   </summary>
+
                   <p className="text-muted-foreground mt-3">{item.a}</p>
                 </details>
               ))}

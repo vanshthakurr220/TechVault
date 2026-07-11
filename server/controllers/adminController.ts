@@ -616,6 +616,7 @@ import {
   sendContactReplyEmail,
   sendOrderStatusEmail,
 } from "server/utils/emailService.js";
+import ProductQuestion from "server/models/ProductQuestion.js";
 
 export const getAllWishlists = async (
   req: Request,
@@ -637,6 +638,200 @@ export const getAllWishlists = async (
     res.status(500).json({
       success: false,
       message: "Failed to fetch wishlists",
+    });
+  }
+};
+
+// ===================================
+// Product Question
+// ===================================
+export const getAllProductQuestions = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const questions = await ProductQuestion.find()
+      .populate("productId", "name images category")
+      .populate("userId", "username email")
+      .populate("answeredBy", "username")
+      .sort({
+        isPinned: -1,
+        createdAt: -1,
+      });
+
+    res.status(200).json({
+      success: true,
+      questions,
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch product questions",
+    });
+  }
+};
+
+export const replyProductQuestion = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const { answer } = req.body;
+
+    const adminId = (req as any).userId;
+
+    if (!answer?.trim()) {
+      res.status(400).json({
+        success: false,
+        message: "Answer is required",
+      });
+      return;
+    }
+
+    const question = await ProductQuestion.findById(id);
+
+    if (!question) {
+      res.status(404).json({
+        success: false,
+        message: "Product question not found",
+      });
+      return;
+    }
+
+    question.answer = answer.trim();
+    question.status = "answered";
+    question.answeredBy = adminId;
+    question.answeredAt = new Date();
+
+    await question.save();
+
+    const populatedQuestion = await ProductQuestion.findById(question._id)
+      .populate("productId", "name images category")
+      .populate("userId", "username email")
+      .populate("answeredBy", "username email");
+
+    res.status(200).json({
+      success: true,
+      message: "Question answered successfully",
+      question: populatedQuestion,
+    });
+  } catch (error) {
+    console.error("Reply product question error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to answer product question",
+    });
+  }
+};
+
+export const deleteProductQuestion = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const deletedQuestion = await ProductQuestion.findByIdAndDelete(id);
+
+    if (!deletedQuestion) {
+      res.status(404).json({
+        success: false,
+        message: "Product question not found",
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Product question deleted successfully",
+      question: deletedQuestion,
+    });
+  } catch (error) {
+    console.error("Delete product question error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete product question",
+    });
+  }
+};
+
+export const toggleProductQuestionVisibility = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const question = await ProductQuestion.findById(id);
+
+    if (!question) {
+      res.status(404).json({
+        success: false,
+        message: "Product question not found",
+      });
+      return;
+    }
+
+    question.isVisible = !question.isVisible;
+
+    await question.save();
+
+    res.status(200).json({
+      success: true,
+      message: question.isVisible
+        ? "Product question is now visible"
+        : "Product question has been hidden",
+      question,
+    });
+  } catch (error) {
+    console.error("Toggle question visibility error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to update question visibility",
+    });
+  }
+};
+
+export const toggleProductQuestionPin = async (
+  req: Request,
+  res: Response,
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+
+    const question = await ProductQuestion.findById(id);
+
+    if (!question) {
+      res.status(404).json({
+        success: false,
+        message: "Product question not found",
+      });
+      return;
+    }
+
+    question.isPinned = !question.isPinned;
+
+    await question.save();
+
+    res.status(200).json({
+      success: true,
+      message: question.isPinned
+        ? "Product question pinned successfully"
+        : "Product question unpinned successfully",
+      question,
+    });
+  } catch (error) {
+    console.error("Toggle question pin error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to update question pin status",
     });
   }
 };

@@ -108,6 +108,54 @@ interface Coupon {
   isActive: boolean;
 }
 
+export interface ProductQuestion {
+  _id: string;
+
+  productId:
+    | string
+    | {
+        _id: string;
+        name: string;
+        image?: string;
+        images?: string[];
+        category?: string;
+      };
+
+  userId: {
+    _id: string;
+    username: string;
+    email?: string;
+  };
+
+  question: string;
+
+  answer?: string;
+
+  status: "pending" | "answered";
+
+  createdAt: string;
+  updatedAt?: string;
+
+  answeredAt?: string;
+
+  answeredBy?: {
+    _id: string;
+    username: string;
+    email?: string;
+  };
+
+  likes: string[];
+  dislikes: string[];
+
+  likesCount?: number;
+  dislikesCount?: number;
+
+  userVote?: "like" | "dislike" | null;
+
+  isVisible: boolean;
+  isPinned: boolean;
+}
+
 interface AppContextType {
   sendMobileOTPSignup: (mobile: string) => Promise<void>;
 
@@ -188,6 +236,25 @@ interface AppContextType {
   fetchProducts: () => Promise<void>;
   getProductById: (id: string) => Promise<Product | null>;
 
+  allProductQuestions: ProductQuestion[];
+
+  fetchAllProductQuestions: () => Promise<void>;
+
+  replyProductQuestion: (
+    questionId: string,
+    answer: string,
+  ) => Promise<ProductQuestion | null>;
+
+  deleteProductQuestion: (questionId: string) => Promise<void>;
+
+  toggleProductQuestionVisibility: (
+    questionId: string,
+  ) => Promise<ProductQuestion | null>;
+
+  toggleProductQuestionPin: (
+    questionId: string,
+  ) => Promise<ProductQuestion | null>;
+
   // Order Functions
   orders: Order[];
   fetchOrders: () => Promise<void>;
@@ -207,6 +274,17 @@ interface AppContextType {
     rating: number,
     comment: string,
   ) => Promise<void>;
+
+  fetchProductQuestions: (productId: string) => Promise<void>;
+
+  askProductQuestion: (productId: string, question: string) => Promise<void>;
+
+  voteProductAnswer: (
+    questionId: string,
+    voteType: "like" | "dislike",
+  ) => Promise<void>;
+
+  productQuestions: ProductQuestion[];
 
   // Contact Functions
   submitContact: (
@@ -332,12 +410,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // ========== REVIEW STATE ==========
   const [reviews, setReviews] = useState<Review[]>([]);
 
+  const [productQuestions, setProductQuestions] = useState<ProductQuestion[]>(
+    [],
+  );
+
   // ========== ADMIN STATE =========='
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [allOrders, setAllOrders] = useState<any[]>([]);
   const [allContacts, setAllContacts] = useState<any[]>([]);
   const [allReviews, setAllReviews] = useState<any[]>([]);
   const [allWishlists, setAllWishlists] = useState<any[]>([]);
+  const [allProductQuestions, setAllProductQuestions] = useState<
+    ProductQuestion[]
+  >([]);
 
   const [dashboardStats, setDashboardStats] = useState({
     users: 0,
@@ -349,7 +434,250 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     coupons: 0,
   });
 
-  // ========== Coupons FUNCTIONS ==========
+  // ========== Product Question FUNCTIONS ==========
+  const fetchAllProductQuestions = useCallback(async () => {
+    if (!accessToken) {
+      setAllProductQuestions([]);
+      return;
+    }
+
+    try {
+      const response = await api("/api/admin/getAllProductQuestions", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch product questions");
+      }
+
+      setAllProductQuestions(
+        Array.isArray(data.questions) ? data.questions : [],
+      );
+    } catch (error) {
+      console.error("Fetch admin product questions error:", error);
+      setAllProductQuestions([]);
+    }
+  }, [accessToken]);
+
+  const replyProductQuestion = useCallback(
+    async (
+      questionId: string,
+      answer: string,
+    ): Promise<ProductQuestion | null> => {
+      if (!accessToken) {
+        notify.error("Admin session not available");
+        return null;
+      }
+
+      try {
+        const response = await api(
+          `/api/admin/productQuestions/${questionId}/reply`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({
+              answer: answer.trim(),
+            }),
+          },
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to save reply");
+        }
+
+        setAllProductQuestions((previousQuestions) =>
+          previousQuestions.map((item) =>
+            item._id === questionId ? data.question : item,
+          ),
+        );
+
+        notify.success(
+          data.question?.status === "answered"
+            ? "Reply saved successfully"
+            : "Question updated successfully",
+        );
+
+        return data.question || null;
+      } catch (error: any) {
+        notify.error(error.message || "Failed to save reply");
+        throw error;
+      }
+    },
+    [accessToken],
+  );
+
+  const deleteProductQuestion = useCallback(
+    async (questionId: string) => {
+      if (!accessToken) {
+        notify.error("Admin session not available");
+        return;
+      }
+
+      try {
+        const response = await api(
+          `/api/admin/productQuestions/${questionId}`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to delete question");
+        }
+
+        setAllProductQuestions((previousQuestions) =>
+          previousQuestions.filter((item) => item._id !== questionId),
+        );
+
+        notify.success("Question deleted successfully");
+      } catch (error: any) {
+        notify.error(error.message || "Failed to delete question");
+        throw error;
+      }
+    },
+    [accessToken],
+  );
+
+  const toggleProductQuestionVisibility = useCallback(
+    async (questionId: string): Promise<ProductQuestion | null> => {
+      if (!accessToken) {
+        notify.error("Admin session not available");
+        return null;
+      }
+
+      try {
+        const response = await api(
+          `/api/admin/productQuestions/${questionId}/toggle-visibility`,
+          {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message || "Failed to update question visibility",
+          );
+        }
+
+        setAllProductQuestions((previousQuestions) =>
+          previousQuestions.map((item) =>
+            item._id === questionId
+              ? {
+                  ...item,
+                  ...data.question,
+
+                  productId:
+                    typeof data.question.productId === "string"
+                      ? item.productId
+                      : data.question.productId,
+
+                  userId:
+                    typeof data.question.userId === "string"
+                      ? item.userId
+                      : data.question.userId,
+
+                  answeredBy:
+                    typeof data.question.answeredBy === "string"
+                      ? item.answeredBy
+                      : data.question.answeredBy,
+                }
+              : item,
+          ),
+        );
+
+        notify.success(data.message);
+
+        return data.question || null;
+      } catch (error: any) {
+        notify.error(error.message || "Failed to update question visibility");
+        throw error;
+      }
+    },
+    [accessToken],
+  );
+
+  const toggleProductQuestionPin = useCallback(
+    async (questionId: string): Promise<ProductQuestion | null> => {
+      if (!accessToken) {
+        notify.error("Admin session not available");
+        return null;
+      }
+
+      try {
+        const response = await api(
+          `/api/admin/productQuestions/${questionId}/toggle-pin`,
+          {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          },
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.message || "Failed to update question pin status",
+          );
+        }
+
+        setAllProductQuestions((previousQuestions) =>
+          previousQuestions.map((item) =>
+            item._id === questionId
+              ? {
+                  ...item,
+                  ...data.question,
+
+                  productId:
+                    typeof data.question.productId === "string"
+                      ? item.productId
+                      : data.question.productId,
+
+                  userId:
+                    typeof data.question.userId === "string"
+                      ? item.userId
+                      : data.question.userId,
+
+                  answeredBy:
+                    typeof data.question.answeredBy === "string"
+                      ? item.answeredBy
+                      : data.question.answeredBy,
+                }
+              : item,
+          ),
+        );
+
+        notify.success(data.message);
+
+        return data.question || null;
+      } catch (error: any) {
+        notify.error(error.message || "Failed to update question pin status");
+        throw error;
+      }
+    },
+    [accessToken],
+  );
+
   // ========== Coupons FUNCTIONS ==========
   const fetchCoupons = useCallback(async () => {
     try {
@@ -1594,6 +1922,125 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     [user?.email, fetchProductReviews],
   );
 
+  // ========== PRODUCT QUESTION FUNCTIONS ==========
+
+  const fetchProductQuestions = useCallback(
+    async (productId: string) => {
+      try {
+        const response = await api(`/api/questions/${productId}`, {
+          headers: accessToken
+            ? {
+                Authorization: `Bearer ${accessToken}`,
+              }
+            : undefined,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch product questions");
+        }
+
+        setProductQuestions(data.questions || []);
+      } catch (error) {
+        console.error("Error fetching product questions:", error);
+        setProductQuestions([]);
+      }
+    },
+    [accessToken],
+  );
+
+  const askProductQuestion = useCallback(
+    async (productId: string, question: string) => {
+      if (!user?.email || !accessToken) {
+        notify.error("Please login to ask a question");
+        throw new Error("Login required");
+      }
+
+      const cleanedQuestion = question.trim();
+
+      if (cleanedQuestion.length < 5) {
+        notify.error("Question must contain at least 5 characters");
+        throw new Error("Question is too short");
+      }
+
+      try {
+        const response = await api("/api/questions/ask", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            productId,
+            question: cleanedQuestion,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to submit question");
+        }
+
+        await fetchProductQuestions(productId);
+
+        notify.success(
+          "Question submitted. Awaiting response from TechVault Support.",
+        );
+      } catch (error: any) {
+        notify.error(error.message || "Failed to submit question");
+        throw error;
+      }
+    },
+    [user?.email, accessToken, fetchProductQuestions],
+  );
+
+  const voteProductAnswer = useCallback(
+    async (questionId: string, voteType: "like" | "dislike") => {
+      if (!user?.email || !accessToken) {
+        notify.error("Please login to vote");
+        throw new Error("Login required");
+      }
+
+      try {
+        const response = await api(`/api/questions/${questionId}/vote`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            voteType,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to record vote");
+        }
+
+        setProductQuestions((previousQuestions) =>
+          previousQuestions.map((item) =>
+            item._id === questionId
+              ? {
+                  ...item,
+                  likesCount: data.likesCount,
+                  dislikesCount: data.dislikesCount,
+                  userVote: data.userVote,
+                }
+              : item,
+          ),
+        );
+      } catch (error: any) {
+        notify.error(error.message || "Failed to record vote");
+        throw error;
+      }
+    },
+    [user, accessToken],
+  );
+
   // ========== CONTACT FUNCTIONS ==========
 
   const submitContact = useCallback(
@@ -2158,6 +2605,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           fetchAllReviews(),
           fetchAllWishlists(),
           fetchDashboardStats(),
+          fetchAllProductQuestions(),
         ]);
       }
     };
@@ -2181,6 +2629,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     fetchAllReviews,
     fetchAllWishlists,
     fetchDashboardStats,
+    fetchAllProductQuestions,
   ]);
 
   useEffect(() => {
@@ -2193,6 +2642,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   // ========== CONTEXT VALUE ==========
 
   const value: AppContextType = {
+    allProductQuestions,
+    fetchAllProductQuestions,
+    replyProductQuestion,
+    deleteProductQuestion,
+    toggleProductQuestionVisibility,
+    toggleProductQuestionPin,
     dashboardStats,
     accessToken,
     sendMobileOTPSignup,
@@ -2252,6 +2707,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     fetchProductReviews,
     submitReview,
     submitContact,
+    productQuestions,
+    fetchProductQuestions,
+    askProductQuestion,
+    voteProductAnswer,
     allUsers,
     allOrders,
     allContacts,

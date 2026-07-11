@@ -17,10 +17,17 @@ import {
   Shield,
   RotateCcw,
   Share2,
+  MessageCircle,
+  ThumbsUp,
+  ThumbsDown,
+  Clock3,
+  BadgeCheck,
+  Send,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { cn } from "@/lib/utils";
 import { toast } from "react-toastify";
+import { useNotification } from "@/components/Notification";
 
 interface Product {
   _id: string;
@@ -47,12 +54,17 @@ interface Product {
 export default function ProductDetail() {
   const [, params] = useRoute("/product/:id");
   const {
+    accessToken,
     user,
     reviews,
+    productQuestions,
     getProductById,
     addToCart: addProductToCart,
     fetchProductReviews,
     submitReview: submitProductReview,
+    fetchProductQuestions,
+    askProductQuestion,
+    voteProductAnswer,
     incrementProductView,
     addToWishlist,
     removeFromWishlist,
@@ -68,6 +80,11 @@ export default function ProductDetail() {
   const [comment, setComment] = useState("");
   const [submittingReview, setSubmittingReview] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [questionText, setQuestionText] = useState("");
+  const [questionLoading, setQuestionLoading] = useState(true);
+  const [submittingQuestion, setSubmittingQuestion] = useState(false);
+  const [votingQuestionId, setVotingQuestionId] = useState<string | null>(null);
+  const notify = useNotification();
 
   const getRatingColor = (value: number) => {
     if (value <= 2) return "fill-red-500 text-red-500";
@@ -113,6 +130,12 @@ export default function ProductDetail() {
     loadProduct();
   }, [params?.id]);
 
+  useEffect(() => {
+    if (!params?.id) return;
+
+    fetchQuestions(params.id);
+  }, [params?.id, accessToken]);
+
   const submitReview = async () => {
     if (!params?.id) return;
     if (!comment.trim()) {
@@ -139,18 +162,29 @@ export default function ProductDetail() {
     }
   };
 
-  useEffect(() => {
-    const checkWishlist = async () => {
-      if (!product?._id || !user?.email) return;
-      try {
-        const exists = await isProductInWishlist(product._id);
-        setIsWishlisted(exists);
-      } catch (error) {
-        console.error("Wishlist check failed:", error);
-      }
-    };
-    checkWishlist();
-  }, [product?._id, user?.email]);
+  const fetchQuestions = async (productId: string) => {
+    try {
+      setQuestionLoading(true);
+      await fetchProductQuestions(productId);
+    } catch (error) {
+      console.error("Product question fetch error:", error);
+    } finally {
+      setQuestionLoading(false);
+    }
+  };
+
+  //! useEffect(() => {
+  //!   const checkWishlist = async () => {
+  //!     if (!product?._id || !user?.email) return;
+  //!     try {
+  //!       const exists = await isProductInWishlist(product._id);
+  //!       setIsWishlisted(exists);
+  //!     } catch (error) {
+  //!       console.error("Wishlist check failed:", error);
+  //!     }
+  //!   };
+  //!   checkWishlist();
+  //! }, [product?._id, user?.email]);
 
   const toggleWishlist = async () => {
     if (!product || !user?.email) {
@@ -217,6 +251,75 @@ export default function ProductDetail() {
     }
   };
 
+  const submitQuestion = async () => {
+    if (!params?.id) return;
+
+    if (!user?.email) {
+      Swal.fire({
+        icon: "warning",
+        title: "Login Required",
+        text: "Please login to ask a product question.",
+      });
+      return;
+    }
+
+    const cleanedQuestion = questionText.trim();
+
+    if (!cleanedQuestion) {
+      Swal.fire({
+        icon: "warning",
+        title: "Question Required",
+        text: "Please enter your question.",
+      });
+      return;
+    }
+
+    if (cleanedQuestion.length < 5) {
+      Swal.fire({
+        icon: "warning",
+        title: "Question Too Short",
+        text: "Your question must contain at least 5 characters.",
+      });
+      return;
+    }
+
+    try {
+      setSubmittingQuestion(true);
+
+      await askProductQuestion(params.id, cleanedQuestion);
+
+      setQuestionText("");
+    } catch (error) {
+      console.error("Submit product question error:", error);
+    } finally {
+      setSubmittingQuestion(false);
+    }
+  };
+
+  const handleQuestionVote = async (
+    questionId: string,
+    voteType: "like" | "dislike",
+  ) => {
+    if (!user?.email) {
+      Swal.fire({
+        icon: "warning",
+        title: "Login Required",
+        text: "Please login to vote on this answer.",
+      });
+      return;
+    }
+
+    try {
+      setVotingQuestionId(questionId);
+
+      await voteProductAnswer(questionId, voteType);
+    } catch (error) {
+      console.error("Question vote error:", error);
+    } finally {
+      setVotingQuestionId(null);
+    }
+  };
+
   if (loading) {
     return <Loader text="Loading product..." variant="page" />;
   }
@@ -254,6 +357,246 @@ export default function ProductDetail() {
   const avgRating = product.rating || 0;
   const totalReviews = product.reviews || 0;
 
+  const handleShare = async () => {
+    if (!product) return;
+
+    const productUrl = window.location.href;
+
+    // Native sharing (Mobile)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: product.name,
+          text: `Check out ${product.name} on TechVault`,
+          url: productUrl,
+        });
+        return;
+      } catch (error) {
+        // User cancelled sharing
+        return;
+      }
+    }
+    const shareMessage = `🔥 Found this on TechVault and thought you might like it!
+
+🛍️ ${product.name}
+💰 Price: ₹${product.price.toLocaleString("en-IN")}
+
+Take a look here:
+${productUrl}`;
+
+    const instagramMessage = `🔥 Found this on TechVault and thought you might like it!
+
+🛍️ ${product.name}
+💰 Price: ₹${product.price.toLocaleString("en-IN")}
+
+🔗 ${productUrl}`;
+
+    // Desktop
+    Swal.fire({
+      width: 520,
+      padding: 0,
+      showConfirmButton: false,
+      showCloseButton: true,
+      customClass: {
+        popup: "techvault-share-popup",
+        closeButton: "techvault-share-close",
+      },
+
+      html: `
+    <div class="share-modal">
+      <div class="share-header">
+        <div class="share-header-icon">
+          <svg
+            width="23"
+            height="23"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="18" cy="5" r="3"></circle>
+            <circle cx="6" cy="12" r="3"></circle>
+            <circle cx="18" cy="19" r="3"></circle>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+          </svg>
+        </div>
+
+        <div class="share-header-content">
+          <h2>Share Product</h2>
+          <p>Share this product with your friends and family.</p>
+        </div>
+      </div>
+
+      <div class="share-product-preview">
+        <div class="share-product-image-wrapper">
+          <img
+            src="${productImages[activeImageIndex] || product.image}"
+            alt="${product.name}"
+            class="share-product-image"
+          />
+        </div>
+
+        <div class="share-product-content">
+          <p class="share-product-name">${product.name}</p>
+          <p class="share-product-price">
+            ₹${product.price.toLocaleString("en-IN")}
+          </p>
+        </div>
+      </div>
+
+      <div class="share-options">
+      
+        <a
+          href="https://wa.me/?text=${encodeURIComponent(shareMessage)}",
+          )}"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="share-option"
+        >
+          <span class="share-option-icon whatsapp-icon">
+            <svg
+              width="23"
+              height="23"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M20.52 3.48A11.82 11.82 0 0 0 12.07 0C5.5 0 .16 5.34.16 11.91c0 2.1.55 4.15 1.59 5.96L.06 24l6.29-1.65a11.9 11.9 0 0 0 5.71 1.45h.01c6.57 0 11.91-5.34 11.91-11.91 0-3.18-1.23-6.17-3.46-8.41ZM12.07 21.8h-.01a9.86 9.86 0 0 1-5.03-1.38l-.36-.21-3.73.98 1-3.64-.24-.37a9.83 9.83 0 0 1-1.51-5.27c0-5.46 4.44-9.9 9.91-9.9a9.84 9.84 0 0 1 7.01 2.9 9.84 9.84 0 0 1 2.9 7.01c-.01 5.45-4.45 9.88-9.94 9.88Zm5.43-7.42c-.3-.15-1.76-.87-2.03-.97-.27-.1-.47-.15-.67.15-.2.3-.77.97-.94 1.17-.17.2-.35.22-.64.07-.3-.15-1.25-.46-2.38-1.47a8.94 8.94 0 0 1-1.65-2.05c-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.49s1.07 2.89 1.22 3.09c.15.2 2.1 3.21 5.09 4.5.71.31 1.27.49 1.7.63.71.23 1.36.2 1.87.12.57-.09 1.76-.72 2.01-1.42.25-.7.25-1.29.17-1.42-.07-.13-.27-.2-.57-.35Z"/>
+            </svg>
+          </span>
+
+          <span class="share-option-content">
+            <span class="share-option-title">WhatsApp</span>
+            <span class="share-option-description">Send to a contact</span>
+          </span>
+
+          <span class="share-option-arrow">›</span>
+        </a>
+
+        <a
+          href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
+            productUrl,
+          )}"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="share-option"
+        >
+          <span class="share-option-icon facebook-icon">
+            <svg
+              width="23"
+              height="23"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.03 1.79-4.7 4.53-4.7 1.31 0 2.69.24 2.69.24v2.97h-1.51c-1.49 0-1.95.93-1.95 1.89v2.26h3.32l-.53 3.49h-2.79V24C19.61 23.1 24 18.1 24 12.07Z"/>
+            </svg>
+          </span>
+
+          <span class="share-option-content">
+            <span class="share-option-title">Facebook</span>
+            <span class="share-option-description">Share on Facebook</span>
+          </span>
+
+          <span class="share-option-arrow">›</span>
+        </a>
+
+        <button id="instagram-share-btn" class="share-option">
+          <span class="share-option-icon instagram-icon">
+            <svg
+              width="23"
+              height="23"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <rect x="2" y="2" width="20" height="20" rx="5"></rect>
+              <circle cx="12" cy="12" r="4"></circle>
+              <circle cx="18" cy="6" r="1" fill="currentColor" stroke="none"></circle>
+            </svg>
+          </span>
+
+          <span class="share-option-content">
+            <span class="share-option-title">Instagram</span>
+            <span class="share-option-description">Copy link and open Instagram</span>
+          </span>
+
+          <span class="share-option-arrow">›</span>
+        </button>
+      </div>
+
+      <div class="share-link-section">
+        <p class="share-link-label">Product link</p>
+
+        <div class="share-link-box">
+          <span class="share-link-text">${productUrl}</span>
+
+          <button id="copy-link-btn" class="share-copy-button">
+            <svg
+              width="17"
+              height="17"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span>Copy</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  `,
+
+      didOpen: () => {
+        const copyButton = document.getElementById("copy-link-btn");
+        const instagramButton = document.getElementById("instagram-share-btn");
+
+        copyButton?.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(productUrl);
+
+            const buttonText = copyButton.querySelector("span");
+
+            if (buttonText) {
+              buttonText.textContent = "Copied";
+            }
+
+            copyButton.classList.add("copied");
+
+            notify.success("Product link copied!");
+
+            window.setTimeout(() => {
+              if (buttonText) {
+                buttonText.textContent = "Copy";
+              }
+
+              copyButton.classList.remove("copied");
+            }, 1800);
+          } catch {
+            notify.error("Unable to copy product link");
+          }
+        });
+
+        instagramButton?.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(instagramMessage);
+
+            window.open("https://www.instagram.com/", "_blank");
+
+            Swal.close();
+          } catch {}
+        });
+      },
+    });
+  };
+
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 to-slate-100">
       {/* Breadcrumb Navigation */}
@@ -276,21 +619,33 @@ export default function ProductDetail() {
             {/* Main Image Viewer */}
             {/* Main Image Viewer */}
             <div className="relative bg-white rounded-2xl overflow-hidden h-96 md:h-125 flex items-center justify-center shadow-lg border border-slate-100 group">
-              {/* Wishlist Button */}
-              <button
-                onClick={toggleWishlist}
-                className="absolute top-6 right-6 z-30 p-3 rounded-full bg-white shadow-lg hover:shadow-xl transition-all hover:scale-110 border border-slate-100"
-              >
-                <Heart
-                  size={24}
-                  className={cn(
-                    "transition-all",
-                    isWishlisted
-                      ? "fill-red-500 text-red-500"
-                      : "text-slate-300 hover:text-red-500",
-                  )}
-                />
-              </button>
+              <div className="absolute top-6 right-6 z-30 flex flex-col gap-3">
+                {/* Wishlist */}
+                <button
+                  onClick={toggleWishlist}
+                  className="p-3 rounded-full bg-white shadow-lg hover:shadow-xl transition-all hover:scale-110 border border-slate-100"
+                >
+                  <Heart
+                    size={24}
+                    className={cn(
+                      isWishlisted
+                        ? "fill-red-500 text-red-500"
+                        : "text-slate-300 hover:text-red-500",
+                    )}
+                  />
+                </button>
+
+                {/* Share */}
+                <button
+                  onClick={handleShare}
+                  className="p-3 rounded-full bg-white shadow-lg hover:shadow-xl transition-all hover:scale-110 border border-slate-100"
+                >
+                  <Share2
+                    size={22}
+                    className="text-slate-500 hover:text-primary transition-colors"
+                  />
+                </button>
+              </div>
 
               {/* Discount Badge */}
               {discount > 0 && (
@@ -729,6 +1084,320 @@ export default function ProductDetail() {
                       </p>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        {/* Product Questions Section */}
+        <div className="max-w-8xl mx-auto mt-16">
+          {/* Section Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+            <div>
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <MessageCircle size={23} className="text-primary" />
+                </div>
+
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">
+                    Product Questions & Answers
+                  </h2>
+
+                  <p className="text-sm text-slate-500 mt-1">
+                    Ask about compatibility, specifications, warranty, or
+                    product features.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <span className="self-start sm:self-auto bg-slate-900 text-white px-4 py-2 rounded-full text-sm font-semibold">
+              {productQuestions.length}{" "}
+              {productQuestions.length === 1 ? "Question" : "Questions"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Ask Question Form */}
+            <div className="lg:col-span-1">
+              <div className="lg:sticky lg:top-24 bg-white border border-slate-200 rounded-2xl p-5 sm:p-7 shadow-sm">
+                <div className="mb-5">
+                  <h3 className="text-xl font-bold text-slate-900">
+                    Have a question?
+                  </h3>
+
+                  <p className="text-sm text-slate-500 mt-2 leading-6">
+                    Ask about this product and TechVault Support will respond
+                    with an official answer.
+                  </p>
+                </div>
+
+                {user?.email ? (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        Your Question
+                      </label>
+
+                      <textarea
+                        value={questionText}
+                        onChange={(e) => setQuestionText(e.target.value)}
+                        placeholder="For example: Does this product support Windows 11?"
+                        rows={6}
+                        maxLength={1000}
+                        className="w-full resize-none rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-900 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      />
+
+                      <div className="flex items-center justify-between mt-2">
+                        <p className="text-xs text-slate-500">
+                          Please avoid sharing personal information.
+                        </p>
+
+                        <span className="text-xs text-slate-400">
+                          {questionText.length}/1000
+                        </span>
+                      </div>
+                    </div>
+
+                    <Button
+                      onClick={submitQuestion}
+                      disabled={submittingQuestion || !questionText.trim()}
+                      className="w-full h-12 rounded-xl font-semibold"
+                    >
+                      <Send size={18} className="mr-2" />
+
+                      {submittingQuestion ? "Submitting..." : "Submit Question"}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+                    <p className="text-sm font-semibold text-amber-900">
+                      Login required
+                    </p>
+
+                    <p className="text-sm text-amber-700 mt-1 leading-6">
+                      Please login to ask a question about this product.
+                    </p>
+
+                    <Button
+                      onClick={() => navigate("/login")}
+                      className="w-full mt-4 h-11 rounded-xl"
+                    >
+                      Login to Ask
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Questions List */}
+            <div className="lg:col-span-2">
+              {questionLoading ? (
+                <Loader text="Loading product questions..." variant="section" />
+              ) : productQuestions.length === 0 ? (
+                <div className="bg-white border-2 border-dashed border-slate-300 rounded-2xl px-6 py-14 text-center">
+                  <div className="w-14 h-14 mx-auto rounded-full bg-slate-100 flex items-center justify-center mb-4">
+                    <MessageCircle size={26} className="text-slate-500" />
+                  </div>
+
+                  <h3 className="text-lg font-bold text-slate-900">
+                    No questions yet
+                  </h3>
+
+                  <p className="text-slate-500 text-sm mt-2">
+                    Be the first customer to ask about this product.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {productQuestions.map((item) => {
+                    const currentUserId = user?._id;
+
+                    const hasLiked =
+                      !!currentUserId &&
+                      Array.isArray(item.likes) &&
+                      item.likes.some((id) => id === currentUserId);
+
+                    const hasDisliked =
+                      !!currentUserId &&
+                      Array.isArray(item.dislikes) &&
+                      item.dislikes.some((id) => id === currentUserId);
+
+                    return (
+                      <div
+                        key={item._id}
+                        className={cn(
+                          "bg-white border rounded-2xl overflow-hidden shadow-sm transition hover:shadow-md",
+                          item.isPinned
+                            ? "border-primary/40 ring-1 ring-primary/10"
+                            : "border-slate-200",
+                        )}
+                      >
+                        {/* Question */}
+                        <div className="p-5 sm:p-6">
+                          <div className="flex items-start gap-4">
+                            <div className="shrink-0 w-10 h-10 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold">
+                              Q
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2 mb-2">
+                                <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                                  Customer Question
+                                </span>
+
+                                {item.isPinned && (
+                                  <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">
+                                    Pinned
+                                  </span>
+                                )}
+                              </div>
+
+                              <h3 className="text-base sm:text-lg font-bold text-slate-900 leading-7 wrap-break-word">
+                                {item.question}
+                              </h3>
+
+                              <p className="text-xs sm:text-sm text-slate-500 mt-3">
+                                Asked by{" "}
+                                <span className="font-semibold text-slate-700">
+                                  {item.userId?.username || "Customer"}
+                                </span>{" "}
+                                •{" "}
+                                {new Date(item.createdAt).toLocaleDateString(
+                                  "en-IN",
+                                  {
+                                    year: "numeric",
+                                    month: "short",
+                                    day: "numeric",
+                                  },
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Answered */}
+                        {item.status === "answered" && item.answer ? (
+                          <div className="border-t border-slate-200 bg-emerald-50/50 p-5 sm:p-6">
+                            <div className="flex items-start gap-4">
+                              <div className="shrink-0 w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                                <BadgeCheck size={21} />
+                              </div>
+
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-bold text-slate-900">
+                                    Official TechVault Response
+                                  </p>
+
+                                  <BadgeCheck
+                                    size={19}
+                                    className="fill-blue-500 text-white"
+                                  />
+                                </div>
+
+                                <p className="text-slate-700 leading-7 mt-3 wrap-break-word">
+                                  {item.answer}
+                                </p>
+
+                                {item.answeredAt && (
+                                  <p className="text-xs text-slate-500 mt-3">
+                                    Answered on{" "}
+                                    {new Date(
+                                      item.answeredAt,
+                                    ).toLocaleDateString("en-IN", {
+                                      year: "numeric",
+                                      month: "short",
+                                      day: "numeric",
+                                    })}
+                                  </p>
+                                )}
+
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mt-5 pt-4 border-t border-emerald-200/70">
+                                  <span className="text-sm font-medium text-slate-600">
+                                    Was this answer helpful?
+                                  </span>
+
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleQuestionVote(item._id, "like")
+                                      }
+                                      disabled={votingQuestionId === item._id}
+                                      className={cn(
+                                        "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-60",
+                                        item.userVote === "like"
+                                          ? "border-green-600 bg-green-600 text-white shadow-sm"
+                                          : "border-slate-300 bg-white text-slate-700 hover:border-green-500 hover:text-green-600",
+                                      )}
+                                    >
+                                      <ThumbsUp
+                                        size={17}
+                                        className={cn(
+                                          "transition-all",
+                                          item.userVote === "like" &&
+                                            "fill-current",
+                                        )}
+                                      />
+
+                                      {item.likesCount || 0}
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleQuestionVote(item._id, "dislike")
+                                      }
+                                      disabled={votingQuestionId === item._id}
+                                      className={cn(
+                                        "inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-60",
+                                        item.userVote === "dislike"
+                                          ? "border-red-600 bg-red-600 text-white shadow-sm"
+                                          : "border-slate-300 bg-white text-slate-700 hover:border-red-500 hover:text-red-600",
+                                      )}
+                                    >
+                                      <ThumbsDown
+                                        size={17}
+                                        className={cn(
+                                          "transition-all",
+                                          item.userVote === "dislike" &&
+                                            "fill-current",
+                                        )}
+                                      />
+
+                                      {item.dislikesCount || 0}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Awaiting Answer */
+                          <div className="border-t border-slate-200 bg-amber-50 p-5 sm:p-6">
+                            <div className="flex items-start gap-3">
+                              <div className="w-9 h-9 shrink-0 rounded-full bg-amber-100 flex items-center justify-center">
+                                <Clock3 size={18} className="text-amber-700" />
+                              </div>
+
+                              <div>
+                                <p className="font-semibold text-amber-900">
+                                  Awaiting response from TechVault Support
+                                </p>
+
+                                <p className="text-sm text-amber-700 mt-1 leading-6">
+                                  Our support team has received this question
+                                  and will provide an official response soon.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

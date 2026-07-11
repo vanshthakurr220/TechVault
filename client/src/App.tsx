@@ -31,6 +31,7 @@ import AdminCoupons from "./pages/AdminCoupons";
 import ProtectedRoute from "./components/ProtectedRoute";
 import GuestRoute from "./components/GuestRoute";
 import { NotificationProvider } from "./components/Notification";
+import AdminProductQuestions from "./pages/AdminProductQuestions";
 
 function Router() {
   return (
@@ -80,6 +81,12 @@ function Router() {
           <Route path="/admin/products">
             <ProtectedRoute adminOnly>
               <AdminProducts />
+            </ProtectedRoute>
+          </Route>
+
+          <Route path="/admin/product-questions">
+            <ProtectedRoute adminOnly>
+              <AdminProductQuestions />
             </ProtectedRoute>
           </Route>
 

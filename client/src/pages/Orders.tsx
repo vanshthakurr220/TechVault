@@ -66,7 +66,6 @@ interface Order {
 export default function Orders() {
   const { orders: contextOrders } = useApp();
   const orders = contextOrders as unknown as Order[];
-  const [loading, setLoading] = useState(false);
   const [expandedOrders, setExpandedOrders] = useState<Record<string, boolean>>(
     {},
   );
@@ -473,7 +472,10 @@ export default function Orders() {
             </div>
             <div className="flex gap-3">
               <a href="/products">
-                <Button className="bg-white text-slate-900 hover:bg-slate-100 font-semibold px-6">
+                <Button
+                  variant="outline"
+                  className="bg-white text-slate-900 hover:bg-gray-100 hover:text-slate-900 font-bold px-6"
+                >
                   Continue Shopping
                 </Button>
               </a>

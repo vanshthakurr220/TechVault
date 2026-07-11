@@ -17,6 +17,7 @@ import wishlistRoutes from "./routes/wishlistRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import couponRoutes from "./routes/couponRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
+import questionRoutes from "./routes/questionRoutes.js";
 
 import {
   publicApiLimiter,
@@ -67,6 +68,8 @@ app.use("/api/wishlist", publicApiLimiter, wishlistRoutes);
 app.use("/api/reviews", publicApiLimiter, reviewRoutes);
 
 app.use("/api/coupons", publicApiLimiter, couponRoutes);
+
+app.use("/api/questions", questionRoutes);
 
 // ============================================================================
 // ADMIN ROUTES

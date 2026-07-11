@@ -7,6 +7,7 @@ import {
   Edit2,
   Save,
   MapPin,
+  CreditCard as PaymentIcon,
   Plus,
   Trash2,
   Package,
@@ -14,24 +15,46 @@ import {
   Lock,
   EyeOff,
   Eye,
+  ArrowRight,
 } from "lucide-react";
 import Swal from "sweetalert2";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useApp } from "@/contexts/AppContext";
 import Loader from "@/components/Loader";
+import { navigate } from "wouter/use-browser-location";
 
 interface OrderItem {
-  productId: {
-    name: string;
+  productId?: {
+    _id: string;
+    name?: string;
+    images?: string[];
+    image?: string;
   };
+
+  name?: string;
+  images?: string[];
+  image?: string;
+  price: number;
+  quantity: number;
 }
 
 interface Order {
   _id: string;
   items: OrderItem[];
-  name: string;
   totalAmount: number;
-  status: string;
+  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  paymentStatus: "pending" | "paid" | "failed";
+  paymentMethod: string;
+  couponCode?: string;
+  couponDiscount?: number;
+  shippingAddress: {
+    fullName: string;
+    phone: string;
+    address: string;
+    city: string;
+    state: string;
+    pincode: string;
+  };
   createdAt: string;
 }
 
@@ -56,6 +79,7 @@ export default function ProfileWithOTP() {
   } = useApp();
 
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const [passwordData, setPasswordData] = useState({
     oldPassword: "",
@@ -467,7 +491,7 @@ export default function ProfileWithOTP() {
           <Button
             onClick={handleLogout}
             variant="destructive"
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 font-bold"
           >
             <LogOut size={18} />
             Logout
@@ -487,7 +511,7 @@ export default function ProfileWithOTP() {
                   onClick={() => setIsEditing(!isEditing)}
                   variant={isEditing ? "destructive" : "default"}
                   size="sm"
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 font-bold"
                 >
                   {isEditing ? (
                     <>
@@ -541,7 +565,7 @@ export default function ProfileWithOTP() {
                         onClick={() => setShowEmailChangeModal(true)}
                         size="sm"
                         variant="outline"
-                        className="whitespace-nowrap hover:bg-black hover:text-white hover:border-black"
+                        className="whitespace-nowrap hover:bg-black hover:text-white hover:border-black font-bold"
                       >
                         Change Email
                       </Button>
@@ -568,7 +592,7 @@ export default function ProfileWithOTP() {
                         onClick={() => setShowMobileChangeModal(true)}
                         size="sm"
                         variant="outline"
-                        className="whitespace-nowrap hover:bg-black hover:text-white hover:border-black"
+                        className="whitespace-nowrap hover:bg-black hover:text-white hover:border-black font-bold"
                       >
                         Change Mobile
                       </Button>
@@ -580,7 +604,7 @@ export default function ProfileWithOTP() {
                   <Button
                     onClick={handleSave}
                     disabled={loading}
-                    className="w-full flex items-center gap-2 mt-4"
+                    className="w-full flex items-center gap-2 mt-4 font-bold"
                   >
                     <Save size={16} />
                     {loading ? "Saving..." : "Save Changes"}
@@ -607,7 +631,7 @@ export default function ProfileWithOTP() {
                   onClick={() => setShowPasswordChangeModal(true)}
                   size="sm"
                   variant="outline"
-                  className="w-full sm:w-auto hover:bg-black hover:text-white hover:border-black"
+                  className="w-full sm:w-auto hover:bg-black hover:text-white hover:border-black font-bold"
                 >
                   Change Password
                 </Button>
@@ -637,7 +661,7 @@ export default function ProfileWithOTP() {
                     setShowAddressForm(true);
                   }}
                   size="sm"
-                  className="w-full sm:w-auto flex items-center justify-center gap-2"
+                  className="w-full sm:w-auto flex items-center justify-center gap-2 font-bold"
                 >
                   <Plus size={16} />
                   Add Address
@@ -685,7 +709,7 @@ export default function ProfileWithOTP() {
                               }
                               size="sm"
                               variant="outline"
-                              className="flex-1 sm:flex-none hover:bg-black hover:text-white hover:border-black"
+                              className="font-bold flex-1 sm:flex-none hover:bg-black hover:text-white hover:border-black"
                             >
                               Set Default
                             </Button>
@@ -695,7 +719,7 @@ export default function ProfileWithOTP() {
                             onClick={() => handleEditAddress(address)}
                             size="sm"
                             variant="outline"
-                            className="flex-1 sm:flex-none hover:bg-black hover:text-white hover:border-black"
+                            className="font-bold flex-1 sm:flex-none hover:bg-black hover:text-white hover:border-black"
                           >
                             <Edit2 size={14} />
                             <span className="sm:hidden ml-1">Edit</span>
@@ -725,32 +749,77 @@ export default function ProfileWithOTP() {
 
           {/* Recent Orders Sidebar */}
           <div className="bg-card border border-border rounded-lg p-6">
-            <h2 className="text-2xl font-bold monospace mb-4 flex items-center gap-2">
-              <Package size={20} />
-              Recent Orders
-            </h2>
+            <div className="flex items-center justify-between mb-4 gap-4">
+              <h2 className="text-2xl font-bold monospace flex items-center gap-2">
+                <Package size={20} />
+                Recent Orders
+              </h2>
+
+              <Link href="/orders">
+                <Button
+                  variant="outline"
+                  className="font-bold rounded-xl hover:bg-primary hover:text-primary-foreground"
+                >
+                  View All
+                  <ArrowRight className="w-4 h-4 ml-1" />
+                </Button>
+              </Link>
+            </div>
 
             {recentOrders.length > 0 ? (
               <div className="space-y-4">
                 {recentOrders.map((order) => (
                   <div
                     key={order._id}
-                    className="p-4 rounded-xl border border-border bg-card hover:shadow-md transition-all"
+                    onClick={() => setSelectedOrder(order)}
+                    className="group p-4 rounded-xl border border-border bg-card cursor-pointer transition-all duration-300 hover:border-primary/40 hover:shadow-md hover:-translate-y-0.5"
                   >
                     {/* Date */}
                     <p className="text-xs text-muted-foreground mb-2">
-                      {new Date(order.createdAt).toLocaleDateString()}
+                      {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
                     </p>
 
-                    {/* Product Names */}
-                    <h3 className="font-semibold text-base text-foreground line-clamp-2">
-                      {order.items
-                        ?.map((item) => item.productId?.name)
-                        .filter(Boolean)
-                        .join(", ")}
-                    </h3>
+                    {/* Clickable Product Names */}
+                    <div className="flex flex-wrap items-center gap-x-1 gap-y-1">
+                      {order.items?.map((item, index) => {
+                        const productId = item.productId?._id;
+                        const productName =
+                          item.productId?.name || item.name || "Product";
 
-                    <div className="flex items-center justify-between mt-3">
+                        return (
+                          <span
+                            key={productId || index}
+                            className="flex items-center"
+                          >
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+
+                                if (productId) {
+                                  navigate(`/product/${productId}`);
+                                }
+                              }}
+                              className="text-left font-semibold text-foreground hover:text-primary hover:underline underline-offset-4 transition-colors"
+                            >
+                              {productName}
+                            </button>
+
+                            {index < order.items.length - 1 && (
+                              <span className="mr-1 text-muted-foreground">
+                                ,
+                              </span>
+                            )}
+                          </span>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex items-center justify-between mt-3 gap-4">
                       {/* Amount */}
                       <div>
                         <p className="text-xs text-muted-foreground">Amount</p>
@@ -776,6 +845,10 @@ export default function ProfileWithOTP() {
                         {order.status}
                       </span>
                     </div>
+
+                    <p className="mt-3 text-xs font-medium text-muted-foreground transition-colors group-hover:text-primary">
+                      Click anywhere on the card to view order details
+                    </p>
                   </div>
                 ))}
               </div>
@@ -879,7 +952,7 @@ export default function ProfileWithOTP() {
                     variant="outline"
                     onClick={handleResendEmailOTP}
                     disabled={loading}
-                    className="w-full"
+                    className="w-full font-bold"
                   >
                     Resend OTP
                   </Button>
@@ -890,7 +963,7 @@ export default function ProfileWithOTP() {
                       setEmailChangeStep("new-email");
                       setEmailOtp("");
                     }}
-                    className="w-full"
+                    className="w-full font-bold"
                   >
                     Back
                   </Button>
@@ -917,7 +990,7 @@ export default function ProfileWithOTP() {
                     setMobileOtp("");
                     setMobileChangeErrors({});
                   }}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground font-bold"
                 >
                   <X size={20} />
                 </button>
@@ -953,7 +1026,11 @@ export default function ProfileWithOTP() {
                     )}
                   </div>
 
-                  <Button type="submit" disabled={loading} className="w-full">
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full font-bold"
+                  >
                     {loading ? (
                       <Loader text="Sending OTP" variant="button" />
                     ) : (
@@ -994,7 +1071,7 @@ export default function ProfileWithOTP() {
                   <Button
                     type="submit"
                     disabled={loading || mobileOtp.length !== 6}
-                    className="w-full"
+                    className="w-full font-bold"
                   >
                     {loading ? "Verifying..." : "Verify OTP"}
                   </Button>
@@ -1004,7 +1081,7 @@ export default function ProfileWithOTP() {
                     variant="outline"
                     onClick={handleResendMobileOTP}
                     disabled={loading}
-                    className="w-full"
+                    className="w-full font-bold"
                   >
                     Resend OTP
                   </Button>
@@ -1016,7 +1093,7 @@ export default function ProfileWithOTP() {
                       setMobileChangeStep("new-mobile");
                       setMobileOtp("");
                     }}
-                    className="w-full"
+                    className="w-full font-bold"
                   >
                     Back
                   </Button>
@@ -1046,7 +1123,7 @@ export default function ProfileWithOTP() {
                     });
                     setPasswordErrors({});
                   }}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="text-muted-foreground hover:text-foreground font-bold"
                 >
                   <X size={20} />
                 </button>
@@ -1094,7 +1171,7 @@ export default function ProfileWithOTP() {
                       <button
                         type="button"
                         onClick={() => togglePasswordVisibility(field.name)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground font-bold"
                       >
                         {field.show ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
@@ -1109,7 +1186,7 @@ export default function ProfileWithOTP() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full flex items-center justify-center gap-2"
+                  className="w-full flex items-center justify-center gap-2 font-bold"
                 >
                   <Lock size={16} />
                   {loading ? "Changing..." : "Change Password"}
@@ -1204,7 +1281,7 @@ export default function ProfileWithOTP() {
                   <Button
                     type="submit"
                     disabled={loading}
-                    className="w-full sm:flex-1"
+                    className="w-full sm:flex-1 font-bold"
                   >
                     {loading
                       ? editingAddressId
@@ -1241,6 +1318,275 @@ export default function ProfileWithOTP() {
           </div>
         )}
       </div>
+      {selectedOrder && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-6"
+          onClick={() => setSelectedOrder(null)}
+        >
+          <div
+            className="relative w-full max-w-5xl max-h-[92vh] overflow-y-auto rounded-2xl sm:rounded-3xl bg-white shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-6">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                  Order Details
+                </p>
+
+                <h2 className="text-lg font-bold text-slate-900 sm:text-xl">
+                  #{selectedOrder._id.slice(-8).toUpperCase()}
+                </h2>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedOrder(null)}
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition-colors hover:bg-slate-900 hover:text-white font-bold"
+                aria-label="Close order details"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-8 p-4 sm:p-6">
+              {/* Order Summary */}
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="mb-1 text-xs font-medium uppercase tracking-wider text-slate-500">
+                    Order Date
+                  </p>
+
+                  <p className="text-sm font-bold text-slate-900">
+                    {new Date(selectedOrder.createdAt).toLocaleDateString(
+                      "en-IN",
+                      {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      },
+                    )}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="mb-1 text-xs font-medium uppercase tracking-wider text-slate-500">
+                    Total Amount
+                  </p>
+
+                  <p className="text-sm font-bold text-slate-900 sm:text-base">
+                    ₹{selectedOrder.totalAmount.toLocaleString("en-IN")}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="mb-1 text-xs font-medium uppercase tracking-wider text-slate-500">
+                    Payment
+                  </p>
+
+                  <p className="text-sm font-bold uppercase text-slate-900">
+                    {selectedOrder.paymentMethod}
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wider text-slate-500">
+                    Status
+                  </p>
+
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-bold capitalize ${
+                      selectedOrder.status === "delivered"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : selectedOrder.status === "shipped"
+                          ? "bg-violet-100 text-violet-700"
+                          : selectedOrder.status === "processing"
+                            ? "bg-sky-100 text-sky-700"
+                            : selectedOrder.status === "cancelled"
+                              ? "bg-rose-100 text-rose-700"
+                              : "bg-amber-100 text-amber-700"
+                    }`}
+                  >
+                    {selectedOrder.status}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid gap-8 lg:grid-cols-3">
+                {/* Ordered Products */}
+                <div className="space-y-4 lg:col-span-2">
+                  <h3 className="flex items-center gap-2 font-bold text-slate-900">
+                    <Package size={18} className="text-primary" />
+                    Ordered Products
+                  </h3>
+
+                  {selectedOrder.items.map((item, index) => {
+                    const productId = item.productId?._id;
+
+                    const productName =
+                      item.productId?.name || item.name || "Product";
+
+                    const productImage =
+                      item.images?.[0] ||
+                      item.productId?.images?.[0] ||
+                      item.image ||
+                      item.productId?.image ||
+                      "/placeholder.png";
+
+                    return (
+                      <div
+                        key={productId || index}
+                        className="flex gap-4 rounded-2xl border border-slate-100 bg-slate-50/60 p-3 sm:p-4"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (productId) {
+                              navigate(`/product/${productId}`);
+                            }
+                          }}
+                          className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-white sm:h-24 sm:w-24 font-bold"
+                        >
+                          <img
+                            src={productImage}
+                            alt={productName}
+                            className="h-full w-full object-contain p-2 transition-transform duration-300 hover:scale-110"
+                          />
+                        </button>
+
+                        <div className="min-w-0 flex-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (productId) {
+                                navigate(`/product/${productId}`);
+                              }
+                            }}
+                            className="line-clamp-2 text-left font-bold text-slate-900 transition-colors hover:text-primary hover:underline"
+                          >
+                            {productName}
+                          </button>
+
+                          <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+                            <div>
+                              <p className="text-xs text-slate-500">
+                                Quantity: {item.quantity}
+                              </p>
+
+                              <p className="text-xs text-slate-500">
+                                ₹{item.price.toLocaleString("en-IN")} each
+                              </p>
+                            </div>
+
+                            <p className="font-bold text-slate-900">
+                              ₹
+                              {(item.price * item.quantity).toLocaleString(
+                                "en-IN",
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  <div className="flex items-center justify-between border-t border-slate-200 pt-4">
+                    <span className="font-medium text-slate-500">
+                      Grand Total
+                    </span>
+
+                    <span className="text-xl font-black text-slate-900">
+                      ₹{selectedOrder.totalAmount.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Address and Payment */}
+                <div className="space-y-4">
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-5">
+                    <h3 className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+                      <MapPin size={15} />
+                      Shipping Address
+                    </h3>
+
+                    <div className="space-y-1 text-sm">
+                      <p className="font-bold text-slate-900">
+                        {selectedOrder.shippingAddress.fullName}
+                      </p>
+
+                      <p className="text-slate-600">
+                        {selectedOrder.shippingAddress.phone}
+                      </p>
+
+                      <p className="leading-relaxed text-slate-600">
+                        {selectedOrder.shippingAddress.address}
+                      </p>
+
+                      <p className="text-slate-600">
+                        {selectedOrder.shippingAddress.city},{" "}
+                        {selectedOrder.shippingAddress.state} -{" "}
+                        {selectedOrder.shippingAddress.pincode}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-5">
+                    <h3 className="mb-4 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+                      <PaymentIcon size={15} />
+                      Payment Details
+                    </h3>
+
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <span className="text-sm text-slate-500">Method</span>
+
+                      <span className="text-sm font-bold uppercase text-slate-900">
+                        {selectedOrder.paymentMethod}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-slate-500">Status</span>
+
+                      <span
+                        className={`rounded-md px-2 py-1 text-xs font-bold uppercase ${
+                          selectedOrder.paymentStatus === "paid"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : selectedOrder.paymentStatus === "failed"
+                              ? "bg-rose-100 text-rose-700"
+                              : "bg-amber-100 text-amber-700"
+                        }`}
+                      >
+                        {selectedOrder.paymentStatus}
+                      </span>
+                    </div>
+                  </div>
+
+                  {selectedOrder.couponCode && (
+                    <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
+                      <p className="mb-3 text-xs font-bold uppercase tracking-widest text-emerald-700">
+                        Coupon Applied
+                      </p>
+
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-black text-emerald-800">
+                          {selectedOrder.couponCode}
+                        </span>
+
+                        <span className="font-bold text-emerald-700">
+                          -₹
+                          {selectedOrder.couponDiscount?.toLocaleString(
+                            "en-IN",
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -20,6 +20,11 @@ import {
   getAllReviews,
   getAllWishlists,
   replyToContactMessage,
+  getAllProductQuestions,
+  replyProductQuestion,
+  deleteProductQuestion,
+  toggleProductQuestionVisibility,
+  toggleProductQuestionPin,
 } from "../controllers/adminController.js";
 
 import { adminAuthorize } from "../middleware/adminAuthorize.js";
@@ -70,5 +75,19 @@ router.put("/orders/changePaymentStatusOrder", changePaymentStatusOrder);
 // ==============================
 router.get("/getAllReviews", getAllReviews);
 router.get("/getAllWishlists", getAllWishlists);
+
+// ==============================
+// Product Questions
+// ==============================
+router.get("/getAllProductQuestions", getAllProductQuestions);
+router.put("/productQuestions/:id/reply", replyProductQuestion);
+router.delete("/productQuestions/:id", deleteProductQuestion);
+
+router.put(
+  "/productQuestions/:id/toggle-visibility",
+  toggleProductQuestionVisibility,
+);
+
+router.put("/productQuestions/:id/toggle-pin", toggleProductQuestionPin);
 
 export default router;

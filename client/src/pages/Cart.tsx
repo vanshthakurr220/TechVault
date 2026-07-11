@@ -100,7 +100,7 @@ export default function Cart() {
           </p>
 
           <Link href="/products">
-            <Button className="inline-flex items-center gap-2 h-12 px-8 text-lg font-semibold rounded-xl shadow-lg hover:shadow-xl transition-all">
+            <Button className="inline-flex items-center gap-2 h-12 px-8 text-lg font-bold rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl hover:text-white">
               Continue Shopping
               <ArrowRight size={20} />
             </Button>

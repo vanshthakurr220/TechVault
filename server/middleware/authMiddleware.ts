@@ -5,6 +5,10 @@ export interface AuthRequest extends Request {
   userId: string;
 }
 
+export interface OptionalAuthRequest extends Request {
+  userId?: string;
+}
+
 export const protect = (
   req: AuthRequest,
   res: Response,
@@ -30,8 +34,44 @@ export const protect = (
     next();
   } catch (error) {
     console.log(error);
+
     return res.status(401).json({
       message: "Invalid token",
     });
+  }
+};
+
+export const optionalProtect = (
+  req: OptionalAuthRequest,
+  res: Response,
+  next: NextFunction,
+): void => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader?.startsWith("Bearer ")) {
+      next();
+      return;
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    if (!token) {
+      next();
+      return;
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+      userId: string;
+    };
+
+    req.userId = decoded.userId;
+
+    next();
+  } catch (error) {
+    console.error("Optional authentication failed:", error);
+
+    // Keep this route public when token is missing, invalid, or expired
+    next();
   }
 };

@@ -460,7 +460,7 @@ export default function AllProducts() {
 
                     {product.stockQuantity <= 3 &&
                       product.stockQuantity > 0 && (
-                        <p className="mt-2 mb-2 text-xs font-medium text-orange-600 animate-pulse">
+                        <p className="mt-2 mb-2 text-xs font-bold text-orange-600 animate-pulse">
                           ⚠ Hurry! Only {product.stockQuantity} unit
                           {product.stockQuantity > 1 ? "s" : ""} left
                         </p>
@@ -473,7 +473,7 @@ export default function AllProducts() {
                           handleAddToCart(product._id);
                         }}
                         disabled={product.stockQuantity <= 0}
-                        className="flex-1 bg-primary text-primary-foreground py-2 px-3 rounded-md text-xs font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center gap-1"
+                        className="flex-1 bg-primary text-primary-foreground py-2 px-3 rounded-md text-xs font-bold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center gap-1"
                       >
                         <ShoppingCart size={14} />
                         Add
@@ -485,7 +485,7 @@ export default function AllProducts() {
                           buyNow(product);
                         }}
                         disabled={product.stockQuantity <= 0}
-                        className="flex-1 border border-primary text-primary py-2 px-3 rounded-md text-xs font-medium hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center gap-1"
+                        className="flex-1 border border-primary text-primary py-2 px-3 rounded-md text-xs font-bold hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 flex items-center justify-center gap-1"
                       >
                         <Zap size={14} />
                         Buy
