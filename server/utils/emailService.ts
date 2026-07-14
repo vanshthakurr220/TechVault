@@ -273,3 +273,138 @@ export const sendContactReplyEmail = async (
     return false;
   }
 };
+
+export const sendProductQuestionReplyEmail = async (
+  email: string,
+  customerName: string,
+  productName: string,
+  productId: string,
+  question: string,
+  answer: string,
+): Promise<boolean> => {
+  try {
+    const clientUrl = process.env.CLIENT_URL?.replace(/\/$/, "");
+
+    if (!clientUrl) {
+      console.error("CLIENT_URL is missing from environment variables");
+      return false;
+    }
+
+    if (!productId) {
+      console.error("Product ID is missing for question reply email");
+      return false;
+    }
+
+    const productUrl = `${clientUrl}/product/${productId}#product-questions`;
+    const html = `
+      <div style="font-family:Arial,sans-serif;background:#f8fafc;padding:30px;">
+        <div style="max-width:650px;margin:auto;background:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #e5e7eb;">
+
+          <div style="background:#0f172a;padding:28px;color:white;">
+            <h1 style="margin:0;font-size:28px;">TechVault</h1>
+            <p style="margin-top:8px;color:#cbd5e1;">
+              Your Product Question Has Been Answered
+            </p>
+          </div>
+
+          <div style="padding:32px;">
+
+            <h2 style="margin-top:0;color:#111827;">
+              Hello ${customerName},
+            </h2>
+
+            <p style="color:#475569;font-size:15px;line-height:1.8;">
+              Great news! Our team has answered your question about the following product.
+            </p>
+
+            <div style="background:#f1f5f9;padding:18px;border-radius:12px;margin-top:25px;">
+              <p style="margin:0;font-size:14px;color:#64748b;">
+                <strong>Product</strong>
+              </p>
+
+              <p style="margin-top:8px;font-size:18px;font-weight:bold;color:#111827;">
+                ${productName}
+              </p>
+            </div>
+
+            <div style="margin-top:28px;border-left:4px solid #2563eb;background:#eff6ff;padding:20px;border-radius:12px;">
+              <h3 style="margin-top:0;color:#1e3a8a;">
+                Your Question
+              </h3>
+
+              <p style="white-space:pre-wrap;color:#374151;line-height:1.8;">
+                ${question}
+              </p>
+            </div>
+
+            <div style="margin-top:24px;border-left:4px solid #16a34a;background:#f0fdf4;padding:20px;border-radius:12px;">
+              <h3 style="margin-top:0;color:#166534;">
+                Official TechVault Reply
+              </h3>
+
+              <p style="white-space:pre-wrap;color:#374151;line-height:1.8;">
+                ${answer}
+              </p>
+            </div>
+
+            <div style="margin-top:30px;text-align:center;">
+  <a
+    href="${productUrl}"
+    target="_blank"
+    rel="noopener noreferrer"
+    style="
+      display:inline-block;
+      background:#0f172a;
+      color:#ffffff;
+      text-decoration:none;
+      padding:14px 26px;
+      border-radius:10px;
+      font-size:15px;
+      font-weight:bold;
+    "
+  >
+    View Answer on TechVault
+  </a>
+</div>
+
+<p style="margin-top:16px;text-align:center;color:#94a3b8;font-size:12px;line-height:1.6;">
+  If the button does not work, copy and paste this link into your browser:
+  <br>
+  <a
+    href="${productUrl}"
+    style="color:#2563eb;word-break:break-all;"
+  >
+    ${productUrl}
+  </a>
+</p>
+
+            <p style="margin-top:30px;color:#475569;line-height:1.8;">
+              Thank you for shopping with <strong>TechVault</strong>.
+              If you have more questions, feel free to ask anytime.
+            </p>
+
+            <p style="margin-top:30px;">
+              Regards,<br>
+              <strong>TechVault Support Team</strong>
+            </p>
+
+          </div>
+
+          <div style="background:#f8fafc;text-align:center;padding:18px;color:#94a3b8;font-size:13px;">
+            © ${new Date().getFullYear()} TechVault. All rights reserved.
+          </div>
+
+        </div>
+      </div>
+    `;
+
+    return await sendEmailWithBrevo({
+      to: email,
+      subject: "Your Product Question Has Been Answered - TechVault",
+      html,
+    });
+  } catch (error) {
+    console.error("Product question reply email error:", error);
+    return false;
+  }
+};

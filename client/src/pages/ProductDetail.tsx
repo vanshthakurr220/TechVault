@@ -136,6 +136,19 @@ export default function ProductDetail() {
     fetchQuestions(params.id);
   }, [params?.id, accessToken]);
 
+  useEffect(() => {
+    if (window.location.hash !== "#product-questions") return;
+
+    const timer = setTimeout(() => {
+      document.getElementById("product-questions")?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [product, productQuestions]);
+
   const submitReview = async () => {
     if (!params?.id) return;
     if (!comment.trim()) {
@@ -1090,7 +1103,10 @@ ${productUrl}`;
           </div>
         </div>
         {/* Product Questions Section */}
-        <div className="max-w-8xl mx-auto mt-16">
+        <div
+          id="product-questions"
+          className="max-w-8xl mx-auto mt-16 scroll-mt-28"
+        >
           {/* Section Header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
             <div>

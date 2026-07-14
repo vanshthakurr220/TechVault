@@ -15,32 +15,49 @@ export const signup = async (req: Request, res: Response) => {
   try {
     const { username, email, password, mobile } = req.body;
 
-    // Validate required fields
-    if (!username || !email || !password || !mobile) {
+    const normalizedUsername =
+      typeof username === "string" ? username.trim() : "";
+
+    const normalizedEmail =
+      typeof email === "string" ? email.trim().toLowerCase() : "";
+
+    const normalizedMobile =
+      typeof mobile === "string" && mobile.trim() ? mobile.trim() : undefined;
+
+    // Username, email and password remain mandatory
+    if (!normalizedUsername || !normalizedEmail || !password) {
       return res.status(400).json({
-        message: "All fields are required",
+        message: "Username, email and password are required",
       });
     }
 
     // Check if email already exists
-    const existingEmail = await User.findOne({ email });
+    const existingEmail = await User.findOne({
+      email: normalizedEmail,
+    });
+
     if (existingEmail) {
       return res.status(400).json({
         message: "Email is already registered",
       });
     }
 
-    // Check if mobile already exists
-    const existingMobile = await User.findOne({ mobile });
-    if (existingMobile) {
-      return res.status(400).json({
-        message: "Mobile number is already registered",
+    // Check mobile only when the user has provided one
+    if (normalizedMobile) {
+      const existingMobile = await User.findOne({
+        mobile: normalizedMobile,
       });
+
+      if (existingMobile) {
+        return res.status(400).json({
+          message: "Mobile number is already registered",
+        });
+      }
     }
 
-    // Verify email OTP
+    // Email verification is always required
     const emailOTP = await OTP.findOne({
-      email,
+      email: normalizedEmail,
       purpose: "signup",
       verified: true,
     });
@@ -51,38 +68,50 @@ export const signup = async (req: Request, res: Response) => {
       });
     }
 
-    // Verify mobile OTP
-    const mobileOTP = await OTP.findOne({
-      mobile,
-      purpose: "signup",
-      verified: true,
-    });
+    // Mobile verification is required only when mobile is provided
+    let mobileOTP = null;
 
-    if (!mobileOTP) {
-      return res.status(400).json({
-        message: "Mobile not verified. Please verify your mobile first.",
+    if (normalizedMobile) {
+      mobileOTP = await OTP.findOne({
+        mobile: normalizedMobile,
+        purpose: "signup",
+        verified: true,
       });
+
+      if (!mobileOTP) {
+        return res.status(400).json({
+          message:
+            "Mobile not verified. Please verify your mobile or skip the mobile step.",
+        });
+      }
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user
     const user = await User.create({
-      username,
-      email,
+      username: normalizedUsername,
+      email: normalizedEmail,
       password: hashedPassword,
-      mobile,
+      ...(normalizedMobile && {
+        mobile: normalizedMobile,
+        mobileVerified: true,
+      }),
     });
 
-    // Delete OTP records
+    // Delete verified email OTP
+    const otpIds = [emailOTP._id];
+
+    // Add mobile OTP only when mobile was verified
+    if (mobileOTP) {
+      otpIds.push(mobileOTP._id);
+    }
+
     await OTP.deleteMany({
       _id: {
-        $in: [emailOTP._id, mobileOTP._id],
+        $in: otpIds,
       },
     });
 
-    // Generate tokens
     const accessToken = generateAccessToken(user._id.toString());
     const refreshToken = generateRefreshToken(user._id.toString());
 
@@ -100,12 +129,24 @@ export const signup = async (req: Request, res: Response) => {
         _id: user._id,
         username: user.username,
         email: user.email,
-        mobile: user.mobile,
+        mobile: user.mobile ?? "",
+        mobileVerified: user.mobileVerified ?? false,
         role: user.role,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error in signup:", error);
+
+    if (error?.code === 11000) {
+      const duplicateField = Object.keys(error.keyPattern ?? {})[0];
+
+      return res.status(400).json({
+        message:
+          duplicateField === "mobile"
+            ? "Mobile number is already registered"
+            : "Email is already registered",
+      });
+    }
 
     return res.status(500).json({
       message: "Internal server error",

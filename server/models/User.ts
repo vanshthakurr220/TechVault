@@ -10,13 +10,26 @@ const addressSchema = new mongoose.Schema({
   isDefault: { type: Boolean, default: false },
 });
 
-const userSchema = new mongoose.Schema({
-  username: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  mobile: { type: String, required: true },
-  role: { type: String, default: "user" },
-  addresses: [addressSchema],
-}, { timestamps: true });
+const userSchema = new mongoose.Schema(
+  {
+    username: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+    mobile: {
+      type: String,
+      required: false,
+      unique: true,
+      sparse: true,
+      trim: true,
+    },
+    mobileVerified: {
+      type: Boolean,
+      default: false,
+    },
+    role: { type: String, default: "user" },
+    addresses: [addressSchema],
+  },
+  { timestamps: true },
+);
 
 export const User = mongoose.model("User", userSchema);

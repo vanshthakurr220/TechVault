@@ -615,6 +615,7 @@ import { Wishlist } from "../models/Wishlist";
 import {
   sendContactReplyEmail,
   sendOrderStatusEmail,
+  sendProductQuestionReplyEmail,
 } from "server/utils/emailService.js";
 import ProductQuestion from "server/models/ProductQuestion.js";
 
@@ -682,8 +683,9 @@ export const replyProductQuestion = async (
     const { answer } = req.body;
 
     const adminId = (req as any).userId;
+    const cleanedAnswer = answer?.trim();
 
-    if (!answer?.trim()) {
+    if (!cleanedAnswer) {
       res.status(400).json({
         success: false,
         message: "Answer is required",
@@ -691,7 +693,9 @@ export const replyProductQuestion = async (
       return;
     }
 
-    const question = await ProductQuestion.findById(id);
+    const question = await ProductQuestion.findById(id)
+      .populate("productId", "name images category")
+      .populate("userId", "username email");
 
     if (!question) {
       res.status(404).json({
@@ -701,7 +705,10 @@ export const replyProductQuestion = async (
       return;
     }
 
-    question.answer = answer.trim();
+    const wasAlreadyAnswered =
+      question.status === "answered" && Boolean(question.answer?.trim());
+
+    question.answer = cleanedAnswer;
     question.status = "answered";
     question.answeredBy = adminId;
     question.answeredAt = new Date();
@@ -713,9 +720,44 @@ export const replyProductQuestion = async (
       .populate("userId", "username email")
       .populate("answeredBy", "username email");
 
+    if (!populatedQuestion) {
+      res.status(404).json({
+        success: false,
+        message: "Updated product question could not be loaded",
+      });
+      return;
+    }
+
+    try {
+      const customer = populatedQuestion.userId as any;
+      const product = populatedQuestion.productId as any;
+
+      if (customer?.email) {
+        await sendProductQuestionReplyEmail(
+          customer.email,
+          customer.username || "Customer",
+          product?.name || "TechVault Product",
+          product?._id?.toString() || "",
+          populatedQuestion.question,
+          populatedQuestion.answer,
+        );
+      } else {
+        console.warn(
+          `Question ${populatedQuestion._id} was answered, but customer email was unavailable.`,
+        );
+      }
+    } catch (emailError) {
+      console.error(
+        "Question answered successfully but reply email failed:",
+        emailError,
+      );
+    }
+
     res.status(200).json({
       success: true,
-      message: "Question answered successfully",
+      message: wasAlreadyAnswered
+        ? "Question reply updated successfully"
+        : "Question answered successfully and customer notified",
       question: populatedQuestion,
     });
   } catch (error) {

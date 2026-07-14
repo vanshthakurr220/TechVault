@@ -26,6 +26,7 @@ export default function SignupWithOTP() {
     loading,
   } = useApp();
 
+  const [mobileVerified, setMobileVerified] = useState(false);
   const [step, setStep] = useState<SignupStep>("email");
   const [mobile, setMobile] = useState("");
   const [mobileOtp, setMobileOtp] = useState("");
@@ -99,7 +100,7 @@ export default function SignupWithOTP() {
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
-    if (!mobile) newErrors.mobile = "Mobile number is required";
+    // if (!mobile) newErrors.mobile = "Mobile number is required";
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -271,30 +272,36 @@ export default function SignupWithOTP() {
           {step === "mobile" && (
             <form
               onSubmit={async (e) => {
-                e.preventDefault();
+                setMobile("");
+                setMobileOtp("");
+                setMobileVerified(false);
+                setErrors({});
+                setStep("details");
 
-                const newErrors: Record<string, string> = {};
+                // e.preventDefault();
 
-                if (!mobile) {
-                  newErrors.mobile = "Mobile number is required";
-                } else if (!/^\d{10}$/.test(mobile)) {
-                  newErrors.mobile = "Enter a valid 10-digit mobile number";
-                }
+                // const newErrors: Record<string, string> = {};
 
-                if (Object.keys(newErrors).length > 0) {
-                  setErrors(newErrors);
-                  return;
-                }
+                // if (!mobile) {
+                //   newErrors.mobile = "Mobile number is required";
+                // } else if (!/^\d{10}$/.test(mobile)) {
+                //   newErrors.mobile = "Enter a valid 10-digit mobile number";
+                // }
 
-                try {
-                  await sendMobileOTPSignup(mobile);
-                  setErrors({});
-                  setStep("mobileOtp");
-                } catch (error) {
-                  setErrors({
-                    mobile: "Failed to send OTP",
-                  });
-                }
+                // if (Object.keys(newErrors).length > 0) {
+                //   setErrors(newErrors);
+                //   return;
+                // }
+
+                // try {
+                //   await sendMobileOTPSignup(mobile);
+                //   setErrors({});
+                //   setStep("mobileOtp");
+                // } catch (error) {
+                //   setErrors({
+                //     mobile: "Failed to send OTP",
+                //   });
+                // }
               }}
               className="space-y-4"
             >
@@ -338,6 +345,29 @@ export default function SignupWithOTP() {
 
                 <ArrowRight size={18} />
               </button>
+              <div className="flex items-center gap-3">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-xs text-muted-foreground">OR</span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMobile("");
+                  setMobileOtp("");
+                  setMobileVerified(false);
+                  setErrors({});
+                  setStep("details");
+                }}
+                className="w-full border border-border bg-background text-foreground py-2 rounded-lg font-bold monospace hover:bg-muted transition-colors duration-200"
+              >
+                Skip mobile number for now
+              </button>
+
+              <p className="text-center text-xs text-muted-foreground">
+                You can verify your mobile number later from your profile.
+              </p>
             </form>
           )}
 
@@ -363,6 +393,7 @@ export default function SignupWithOTP() {
                 try {
                   await verifyMobileOTPSignup(mobile, mobileOtp);
 
+                  setMobileVerified(true);
                   setErrors({});
                   setStep("details");
                 } catch (error) {
@@ -432,6 +463,7 @@ export default function SignupWithOTP() {
                 onClick={() => {
                   setStep("mobile");
                   setMobileOtp("");
+                  setMobileVerified(false);
                 }}
                 className="w-full text-muted-foreground py-2 rounded-lg font-bold monospace"
               >
@@ -449,10 +481,31 @@ export default function SignupWithOTP() {
                   Email verified: {email}
                 </span>
               </div>
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-4 flex items-center gap-2">
-                <CheckCircle size={18} className="text-green-600" />
-                <span className="text-sm text-green-700 dark:text-green-300">
-                  Mobile verified: {mobile}
+              <div
+                className={`rounded-lg border p-3 mb-4 flex items-center gap-2 ${
+                  mobileVerified
+                    ? "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                    : "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
+                }`}
+              >
+                {mobileVerified ? (
+                  <CheckCircle size={18} className="text-green-600 shrink-0" />
+                ) : (
+                  <Phone size={18} className="text-amber-600 shrink-0" />
+                )}
+
+                <span
+                  className={`text-sm ${
+                    mobileVerified
+                      ? "text-green-700 dark:text-green-300"
+                      : "text-amber-700 dark:text-amber-300"
+                  }`}
+                >
+                  {mobileVerified
+                    ? `Mobile verified: ${mobile}`
+                    : mobile
+                      ? `Mobile not verified: ${mobile}`
+                      : "Mobile number skipped"}
                 </span>
               </div>
 
