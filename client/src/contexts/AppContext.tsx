@@ -314,6 +314,7 @@ interface AppContextType {
     wishlists: number;
     reviews: number;
     coupons: number;
+    productQuestions: number;
   }>;
 
   dashboardStats: {
@@ -324,7 +325,9 @@ interface AppContextType {
     wishlists: number;
     messages: number;
     coupons: number;
+    productQuestions: number;
   };
+
   deleteUser: (userId: string) => Promise<void>;
   makeAdmin: (userId: string) => Promise<void>;
   removeAdmin: (userId: string) => Promise<void>;
@@ -432,6 +435,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     wishlists: 0,
     messages: 0,
     coupons: 0,
+    productQuestions: 0,
   });
 
   // ========== Product Question FUNCTIONS ==========
@@ -2185,6 +2189,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       wishlistsRes,
       reviewsRes,
       couponsRes,
+      productQuestionsRes,
     ] = await Promise.all([
       api("/api/admin/getAllUsers", { headers }),
       api("/api/admin/getAllProducts", { headers }),
@@ -2193,6 +2198,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       api("/api/admin/getAllWishlists", { headers }),
       api("/api/admin/getAllReviews", { headers }),
       api("/api/coupons", { headers }),
+      api("/api/admin/getAllProductQuestions", { headers }),
     ]);
 
     const [
@@ -2203,6 +2209,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       wishlistsData,
       reviewsData,
       couponsData,
+      productQuestionsData,
     ] = await Promise.all([
       usersRes.json(),
       productsRes.json(),
@@ -2211,6 +2218,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       wishlistsRes.json(),
       reviewsRes.json(),
       couponsRes.json(),
+      productQuestionsRes.json(),
     ]);
 
     if (
@@ -2220,7 +2228,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       !ordersRes.ok ||
       !wishlistsRes.ok ||
       !reviewsRes.ok ||
-      !couponsRes.ok
+      !couponsRes.ok ||
+      !productQuestionsRes.ok
     ) {
       throw new Error(
         usersData.message ||
@@ -2230,29 +2239,40 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           wishlistsData.message ||
           reviewsData.message ||
           couponsData.message ||
+          productQuestionsData.message ||
           "Failed to fetch dashboard statistics",
       );
     }
 
     const users = Array.isArray(usersData) ? usersData : usersData.users || [];
+
     const products = Array.isArray(productsData)
       ? productsData
       : productsData.products || [];
+
     const messages = Array.isArray(messagesData)
       ? messagesData
       : messagesData.contacts || [];
+
     const orders = Array.isArray(ordersData)
       ? ordersData
       : ordersData.orders || [];
+
     const wishlists = Array.isArray(wishlistsData)
       ? wishlistsData
       : wishlistsData.wishlists || [];
+
     const reviews = Array.isArray(reviewsData)
       ? reviewsData
       : reviewsData.reviews || [];
+
     const coupons = Array.isArray(couponsData)
       ? couponsData
       : couponsData.coupons || [];
+
+    const productQuestions = Array.isArray(productQuestionsData)
+      ? productQuestionsData
+      : productQuestionsData.questions || [];
 
     setAllUsers(users);
     setAdminProducts(products);
@@ -2261,6 +2281,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setAllWishlists(wishlists);
     setAllReviews(reviews);
     setCoupons(coupons);
+    setAllProductQuestions(productQuestions);
 
     const stats = {
       users: users.length,
@@ -2270,6 +2291,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       wishlists: wishlists.length,
       reviews: reviews.length,
       coupons: coupons.length,
+      productQuestions: productQuestions.length,
     };
 
     setDashboardStats(stats);
@@ -2597,16 +2619,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       ]);
 
       if (user.role === "admin") {
-        await Promise.allSettled([
-          fetchAdminProducts(),
-          fetchAllOrders(),
-          fetchAllUsers(),
-          fetchAllContacts(),
-          fetchAllReviews(),
-          fetchAllWishlists(),
-          fetchDashboardStats(),
-          fetchAllProductQuestions(),
-        ]);
+        await fetchDashboardStats();
       }
     };
 

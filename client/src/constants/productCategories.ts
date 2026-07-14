@@ -11,6 +11,7 @@ export const PRODUCT_CATEGORIES = [
   "Ram",
   "SSD",
   "Tablet",
+  
 ] as const;
 
 export type ProductCategory = (typeof PRODUCT_CATEGORIES)[number];
