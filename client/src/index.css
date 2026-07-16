@@ -707,3 +707,122 @@
     width: 100%;
   }
 }
+
+@keyframes productHeroEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.985);
+    filter: blur(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes productImageEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+    filter: blur(3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes productContentEntrance {
+  from {
+    opacity: 0;
+    transform: translateX(22px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  [style*="productHeroEntrance"],
+  [style*="productImageEntrance"],
+  [style*="productContentEntrance"] {
+    animation: none !important;
+  }
+}
+
+@keyframes productSectionEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+    filter: blur(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes specificationEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  [style*="productSectionEntrance"],
+  [style*="specificationEntrance"] {
+    animation: none !important;
+  }
+}
+
+@keyframes reviewCardEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [style*="reviewCardEntrance"] {
+    animation: none !important;
+  }
+}
+
+@keyframes questionCardEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [style*="questionCardEntrance"] {
+    animation: none !important;
+  }
+}
