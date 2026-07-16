@@ -33,6 +33,8 @@ export interface IOrder extends Document {
 
   status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
 
+  statusHistory: IOrderStatusHistory;
+
   paymentStatus: "pending" | "paid" | "failed";
 
   paymentMethod: "cod" | "card" | "upi";
@@ -135,6 +137,29 @@ const orderSchema = new Schema<IOrder>(
       default: "pending",
     },
 
+    statusHistory: {
+      pendingAt: {
+        type: Date,
+        default: Date.now,
+      },
+
+      processingAt: {
+        type: Date,
+      },
+
+      shippedAt: {
+        type: Date,
+      },
+
+      deliveredAt: {
+        type: Date,
+      },
+
+      cancelledAt: {
+        type: Date,
+      },
+    },
+
     paymentStatus: {
       type: String,
 
@@ -196,5 +221,13 @@ const orderSchema = new Schema<IOrder>(
     timestamps: true,
   },
 );
+
+interface IOrderStatusHistory {
+  pendingAt?: Date;
+  processingAt?: Date;
+  shippedAt?: Date;
+  deliveredAt?: Date;
+  cancelledAt?: Date;
+}
 
 export const Order = mongoose.model<IOrder>("Order", orderSchema);

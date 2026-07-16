@@ -27,6 +27,8 @@ import {
   toggleProductQuestionPin,
 } from "../controllers/adminController.js";
 
+import { fetchAdminAnalytics } from "../controllers/analyticsController";
+
 import { adminAuthorize } from "../middleware/adminAuthorize.js";
 import { protect } from "server/middleware/authMiddleware.js";
 
@@ -90,4 +92,8 @@ router.put(
 
 router.put("/productQuestions/:id/toggle-pin", toggleProductQuestionPin);
 
+// ==============================
+// Order Analytics
+// ==============================
+router.get("/analytics", protect, adminAuthorize, fetchAdminAnalytics);
 export default router;

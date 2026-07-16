@@ -491,13 +491,28 @@ export const changeStatusOrder = async (
       return;
     }
 
+    const statusDateFieldMap = {
+      pending: "statusHistory.pendingAt",
+      processing: "statusHistory.processingAt",
+      shipped: "statusHistory.shippedAt",
+      delivered: "statusHistory.deliveredAt",
+      cancelled: "statusHistory.cancelledAt",
+    } as const;
+
+    const statusDateField =
+      statusDateFieldMap[status as keyof typeof statusDateFieldMap];
+
     const updatedOrder = await Order.findByIdAndUpdate(
       id,
       {
-        status,
+        $set: {
+          status,
+          [statusDateField]: new Date(),
+        },
       },
       {
         new: true,
+        runValidators: true,
       },
     ).populate("userId", "username email name");
 
