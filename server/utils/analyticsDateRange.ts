@@ -1,4 +1,12 @@
-export type AnalyticsRange = "today" | "7d" | "30d" | "90d" | "custom";
+export type AnalyticsRange =
+  | "yesterday"
+  | "today"
+  | "7d"
+  | "30d"
+  | "90d"
+  | "6m"
+  | "1y"
+  | "custom";
 
 interface GetAnalyticsDateRangeOptions {
   range?: AnalyticsRange;
@@ -67,6 +75,14 @@ export const getAnalyticsDateRange = ({
         currentStartDate = startOfDay(now);
         break;
 
+      case "yesterday":
+        currentStartDate = startOfDay(new Date(now));
+        currentStartDate.setDate(currentStartDate.getDate() - 1);
+
+        currentEndDate = endOfDay(new Date(now));
+        currentEndDate.setDate(currentEndDate.getDate() - 1);
+        break;
+
       case "7d":
         currentStartDate = startOfDay(now);
         currentStartDate.setDate(currentStartDate.getDate() - 6);
@@ -80,6 +96,17 @@ export const getAnalyticsDateRange = ({
       case "90d":
         currentStartDate = startOfDay(now);
         currentStartDate.setDate(currentStartDate.getDate() - 89);
+        break;
+      case "6m":
+        currentStartDate = startOfDay(now);
+        currentStartDate.setMonth(currentStartDate.getMonth() - 6);
+        currentStartDate.setDate(currentStartDate.getDate() + 1);
+        break;
+
+      case "1y":
+        currentStartDate = startOfDay(now);
+        currentStartDate.setFullYear(currentStartDate.getFullYear() - 1);
+        currentStartDate.setDate(currentStartDate.getDate() + 1);
         break;
 
       default:

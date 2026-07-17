@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { Order } from "server/models/Order";
 import { Product } from "server/models/Products";
+import { Wishlist } from "server/models/Wishlist";
 
 interface GetProductPerformanceAnalyticsOptions {
   startDate: Date;
@@ -49,6 +50,7 @@ export const getProductPerformanceAnalytics = async ({
     highestRevenueProducts,
     periodSales,
   ] = await Promise.all([
+    // 1. Most viewed products
     Product.find({
       views: {
         $gt: 0,
@@ -63,20 +65,84 @@ export const getProductPerformanceAnalytics = async ({
       .limit(limit)
       .lean(),
 
-    Product.find({
-      wishlistCount: {
-        $gt: 0,
+    // 2. Most wishlisted products
+    Wishlist.aggregate([
+      {
+        $unwind: "$items",
       },
-    })
-      .select(
-        "_id name image images views wishlistCount unitsSold revenue stockQuantity",
-      )
-      .sort({
-        wishlistCount: -1,
-      })
-      .limit(limit)
-      .lean(),
 
+      // Keep this stage when wishlist analytics should follow the selected range.
+      {
+        $match: {
+          "items.addedAt": {
+            $gte: startDate,
+            $lte: endDate,
+          },
+        },
+      },
+
+      {
+        $group: {
+          _id: "$items.productId",
+
+          wishlistCount: {
+            $sum: 1,
+          },
+        },
+      },
+
+      {
+        $sort: {
+          wishlistCount: -1,
+        },
+      },
+
+      {
+        $limit: limit,
+      },
+
+      {
+        $lookup: {
+          from: Product.collection.name,
+          localField: "_id",
+          foreignField: "_id",
+          as: "product",
+        },
+      },
+
+      {
+        $unwind: "$product",
+      },
+
+      {
+        $project: {
+          _id: "$product._id",
+          name: "$product.name",
+          image: "$product.image",
+          images: "$product.images",
+
+          views: {
+            $ifNull: ["$product.views", 0],
+          },
+
+          wishlistCount: 1,
+
+          unitsSold: {
+            $ifNull: ["$product.unitsSold", 0],
+          },
+
+          revenue: {
+            $ifNull: ["$product.revenue", 0],
+          },
+
+          stockQuantity: {
+            $ifNull: ["$product.stockQuantity", 0],
+          },
+        },
+      },
+    ]),
+
+    // 3. Highest revenue products
     Product.find({
       revenue: {
         $gt: 0,
@@ -91,6 +157,7 @@ export const getProductPerformanceAnalytics = async ({
       .limit(limit)
       .lean(),
 
+    // 4. Sales made during the selected period
     Order.aggregate([
       {
         $match: {
@@ -100,7 +167,7 @@ export const getProductPerformanceAnalytics = async ({
           },
 
           status: "delivered",
-paymentStatus: "paid",
+          paymentStatus: "paid",
         },
       },
 

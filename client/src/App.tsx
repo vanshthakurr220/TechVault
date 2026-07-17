@@ -32,6 +32,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import GuestRoute from "./components/GuestRoute";
 import { NotificationProvider } from "./components/Notification";
 import AdminProductQuestions from "./pages/AdminProductQuestions";
+import AdminAnalytics from "./pages/AdminAnalytics";
 
 function Router() {
   return (
@@ -63,6 +64,12 @@ function Router() {
           <Route path="/admin">
             <ProtectedRoute adminOnly>
               <AdminHome />
+            </ProtectedRoute>
+          </Route>
+
+          <Route path="/admin/analytics">
+            <ProtectedRoute adminOnly>
+              <AdminAnalytics />
             </ProtectedRoute>
           </Route>
 

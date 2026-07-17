@@ -1,5 +1,6 @@
 import { useNotification } from "@/components/Notification";
 import { api } from "@/lib/api";
+import { AdminAnalytics, AnalyticsFilters } from "@/types/analytics";
 import React, {
   createContext,
   useContext,
@@ -294,6 +295,15 @@ interface AppContextType {
   ) => Promise<void>;
 
   // Admin Functions
+  adminAnalytics: AdminAnalytics | null;
+
+  analyticsLoading: boolean;
+
+  analyticsError: string | null;
+
+  fetchAdminAnalytics: (
+    filters?: AnalyticsFilters,
+  ) => Promise<AdminAnalytics | null>;
   allUsers: any[];
   allOrders: any[];
   allContacts: any[];
@@ -426,6 +436,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [allProductQuestions, setAllProductQuestions] = useState<
     ProductQuestion[]
   >([]);
+
+  const [adminAnalytics, setAdminAnalytics] = useState<AdminAnalytics | null>(
+    null,
+  );
+
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
 
   const [dashboardStats, setDashboardStats] = useState({
     users: 0,
@@ -2076,6 +2094,75 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   // ========== ADMIN FUNCTIONS ==========
 
+  const fetchAdminAnalytics = useCallback(
+    async (filters: AnalyticsFilters = {}): Promise<AdminAnalytics | null> => {
+      if (!accessToken) {
+        setAdminAnalytics(null);
+        setAnalyticsError("Admin session not available");
+        return null;
+      }
+
+      setAnalyticsLoading(true);
+      setAnalyticsError(null);
+
+      try {
+        const searchParams = new URLSearchParams();
+
+        if (filters.range) {
+          searchParams.set("range", filters.range);
+        }
+
+        if (filters.groupBy) {
+          searchParams.set("groupBy", filters.groupBy);
+        }
+
+        if (filters.startDate) {
+          searchParams.set("startDate", filters.startDate);
+        }
+
+        if (filters.endDate) {
+          searchParams.set("endDate", filters.endDate);
+        }
+
+        const queryString = searchParams.toString();
+
+        const endpoint = queryString
+          ? `/api/admin/analytics?${queryString}`
+          : "/api/admin/analytics";
+
+        const response = await api(endpoint, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to fetch analytics");
+        }
+
+        const analytics = data.analytics as AdminAnalytics;
+
+        setAdminAnalytics(analytics);
+
+        return analytics;
+      } catch (error: any) {
+        const message = error.message || "Failed to fetch analytics";
+
+        console.error("Fetch admin analytics error:", error);
+
+        setAdminAnalytics(null);
+        setAnalyticsError(message);
+
+        return null;
+      } finally {
+        setAnalyticsLoading(false);
+      }
+    },
+    [accessToken],
+  );
+
   const adminHeaders = () => ({
     Authorization: `Bearer ${accessToken}`,
   });
@@ -2736,6 +2823,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     fetchAllWishlists,
     fetchAdminProducts,
     fetchDashboardStats,
+    adminAnalytics,
+    analyticsLoading,
+    analyticsError,
+    fetchAdminAnalytics,
     deleteUser,
     makeAdmin,
     removeAdmin,

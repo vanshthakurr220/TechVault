@@ -31,15 +31,19 @@ export const fetchAdminAnalytics = async (
 
     const allowedRanges: AnalyticsRange[] = [
       "today",
+      "yesterday",
       "7d",
       "30d",
       "90d",
+      "6m",
+      "1y",
       "custom",
     ];
 
     if (!allowedRanges.includes(range)) {
       res.status(400).json({
-        message: "Invalid analytics range. Use today, 7d, 30d, 90d, or custom.",
+        message:
+          "Invalid analytics range. Use today, yesterday, 7d, 30d, 90d, 6m, 1y, or custom.",
       });
 
       return;
