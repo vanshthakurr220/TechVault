@@ -22,8 +22,6 @@ logs/
 .DS_Store
 Thumbs.db
 
-# Local uploads
-server/uploads/
 
 # Coverage
 coverage/
