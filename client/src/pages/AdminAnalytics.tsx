@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -68,9 +68,21 @@ import {
   TrendingDown,
   Lightbulb,
   Package,
+  Table2,
+  FileSpreadsheet,
+  FileText,
+  ChevronDown,
+  Download,
+  BellRing,
+  ChevronRight,
 } from "lucide-react";
 import { Link } from "wouter";
 import AnimatedCounter from "@/components/admin/AnimatedCounter";
+import {
+  exportAnalyticsCSV,
+  exportAnalyticsExcel,
+  exportAnalyticsPDF,
+} from "@/utils/analyticsExport";
 
 interface SummaryCardProps {
   title: string;
@@ -84,8 +96,6 @@ interface SummaryCardProps {
 }
 
 type ProductMetric = "views" | "wishlistCount" | "revenue";
-
-
 
 interface ProductPerformanceCardProps {
   title: string;
@@ -122,6 +132,7 @@ const formatNumber = (value: number) =>
   new Intl.NumberFormat("en-IN").format(value);
 
 const ANALYTICS_SECTIONS = [
+  { id: "smart-alerts", label: "Alerts", icon: BellRing },
   { id: "overview", label: "Overview", icon: BarChart3 },
   { id: "revenue-orders", label: "Revenue & Orders", icon: TrendingUp },
   { id: "payments", label: "Payments", icon: CreditCard },
@@ -709,6 +720,61 @@ const ANALYTICS_RANGE_OPTIONS: {
   { label: "Custom range", value: "custom" },
 ];
 
+type SmartAlertSeverity = "critical" | "warning" | "info";
+
+interface SmartAlert {
+  id: string;
+  title: string;
+  message: string;
+  value: string;
+  severity: SmartAlertSeverity;
+  sectionId: string;
+  actionLabel: string;
+  icon: React.ElementType;
+}
+
+const SMART_ALERT_STYLES: Record<
+  SmartAlertSeverity,
+  {
+    cardClassName: string;
+    iconClassName: string;
+    iconBackgroundClassName: string;
+    badgeClassName: string;
+    valueClassName: string;
+    label: string;
+  }
+> = {
+  critical: {
+    cardClassName:
+      "border-red-200 bg-gradient-to-br from-red-50 to-white hover:border-red-300",
+    iconClassName: "text-red-700",
+    iconBackgroundClassName: "bg-red-100",
+    badgeClassName: "border-red-200 bg-red-50 text-red-700",
+    valueClassName: "text-red-950",
+    label: "Critical",
+  },
+
+  warning: {
+    cardClassName:
+      "border-amber-200 bg-gradient-to-br from-amber-50 to-white hover:border-amber-300",
+    iconClassName: "text-amber-700",
+    iconBackgroundClassName: "bg-amber-100",
+    badgeClassName: "border-amber-200 bg-amber-50 text-amber-700",
+    valueClassName: "text-amber-950",
+    label: "Needs attention",
+  },
+
+  info: {
+    cardClassName:
+      "border-blue-200 bg-gradient-to-br from-blue-50 to-white hover:border-blue-300",
+    iconClassName: "text-blue-700",
+    iconBackgroundClassName: "bg-blue-100",
+    badgeClassName: "border-blue-200 bg-blue-50 text-blue-700",
+    valueClassName: "text-blue-950",
+    label: "Monitor",
+  },
+};
+
 const ANALYTICS_GROUP_OPTIONS: {
   label: string;
   value: AnalyticsGroupBy;
@@ -720,6 +786,12 @@ const ANALYTICS_GROUP_OPTIONS: {
 
 export default function AdminAnalytics() {
   const quickNavigationRef = useRef<HTMLElement | null>(null);
+
+  const exportMenuRef = useRef<HTMLDivElement | null>(null);
+
+  const revenueChartRef = useRef<HTMLDivElement | null>(null);
+
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const {
     adminAnalytics,
     analyticsLoading,
@@ -819,6 +891,23 @@ export default function AdminAnalytics() {
     appliedEndDate,
     fetchAdminAnalytics,
   ]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        exportMenuRef.current &&
+        !exportMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowExportMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const customerAnalytics = adminAnalytics?.customers;
 
@@ -922,6 +1011,205 @@ export default function AdminAnalytics() {
     (item) => item.revenue > 0,
   ).length;
 
+  const smartAlerts = useMemo<SmartAlert[]>(() => {
+  if (!adminAnalytics) return [];
+
+  const alerts: SmartAlert[] = [];
+
+  const lowStockCount = Number(
+    adminAnalytics.inventory?.lowStockCount,
+  ) || 0;
+
+  const outOfStockCount = Number(
+    adminAnalytics.inventory?.outOfStockCount,
+  ) || 0;
+
+  const pendingRevenue = Number(
+    adminAnalytics.summary?.pendingRevenue?.current,
+  ) || 0;
+
+  const averageRating = Number(
+    adminAnalytics.reviews?.averageRating,
+  ) || 0;
+
+  const totalReviews = Number(
+    adminAnalytics.reviews?.totalReviews,
+  ) || 0;
+
+  const pendingQuestions = Number(
+    adminAnalytics.questions?.pendingQuestions,
+  ) || 0;
+
+  const cancellationChange = Number(
+    adminAnalytics.summary?.cancelledOrders?.percentageChange,
+  ) || 0;
+
+  const cancellationTrend =
+    adminAnalytics.summary?.cancelledOrders?.trend;
+
+  const codMethod = adminAnalytics.paymentMethods?.find(
+    (method) => method.method.toLowerCase() === "cod",
+  );
+
+  const codPercentage = Number(codMethod?.percentage) || 0;
+  const codOrders = Number(codMethod?.orders) || 0;
+
+  /*
+   * Critical: products already unavailable.
+   */
+  if (outOfStockCount > 0) {
+    alerts.push({
+      id: "out-of-stock",
+      title: `${formatNumber(outOfStockCount)} ${
+        outOfStockCount === 1 ? "product is" : "products are"
+      } out of stock`,
+      message:
+        "These products cannot currently be purchased and may be causing missed sales.",
+      value: `${formatNumber(outOfStockCount)} unavailable`,
+      severity: "critical",
+      sectionId: "inventory",
+      actionLabel: "Review inventory",
+      icon: PackageX,
+    });
+  }
+
+  /*
+   * Warning: products approaching zero stock.
+   */
+  if (lowStockCount > 0) {
+    alerts.push({
+      id: "low-stock",
+      title: `${formatNumber(lowStockCount)} ${
+        lowStockCount === 1
+          ? "product may run"
+          : "products may run"
+      } out of stock soon`,
+      message:
+        "Current stock has reached the low-stock threshold. Consider restocking before inventory is depleted.",
+      value: `${formatNumber(lowStockCount)} to restock`,
+      severity: lowStockCount >= 10 ? "critical" : "warning",
+      sectionId: "inventory",
+      actionLabel: "View low stock",
+      icon: AlertTriangle,
+    });
+  }
+
+  /*
+   * Critical: pending payment value exceeds business threshold.
+   */
+  if (pendingRevenue > 50_000) {
+    alerts.push({
+      id: "pending-payments",
+      title: "Pending payments exceed ₹50,000",
+      message:
+        "A high value of order revenue is still awaiting payment confirmation or collection.",
+      value: formatCurrency(pendingRevenue),
+      severity: pendingRevenue >= 100_000 ? "critical" : "warning",
+      sectionId: "payments",
+      actionLabel: "Review payments",
+      icon: WalletCards,
+    });
+  }
+
+  /*
+   * Rating warning only when reviews actually exist.
+   */
+  if (totalReviews > 0 && averageRating < 4) {
+    alerts.push({
+      id: "low-rating",
+      title: "Average review rating is below 4.0",
+      message:
+        "Customer satisfaction may need attention. Review lower-rated feedback and identify recurring product issues.",
+      value: `${averageRating.toFixed(1)} / 5`,
+      severity: averageRating < 3 ? "critical" : "warning",
+      sectionId: "reviews",
+      actionLabel: "Inspect reviews",
+      icon: Star,
+    });
+  }
+
+  /*
+   * Current backend provides COD share, not its previous-period change.
+   */
+  if (codOrders > 0 && codPercentage >= 50) {
+    alerts.push({
+      id: "high-cod-share",
+      title: "COD represents a high share of orders",
+      message:
+        "A high reliance on Cash on Delivery may increase payment collection and cancellation risk.",
+      value: `${codPercentage.toFixed(1)}% COD`,
+      severity: codPercentage >= 70 ? "warning" : "info",
+      sectionId: "payments",
+      actionLabel: "View payment methods",
+      icon: Banknote,
+    });
+  }
+
+  /*
+   * Cancellation comparison is already available from summary analytics.
+   */
+  if (
+    cancellationTrend === "up" &&
+    cancellationChange > 0
+  ) {
+    alerts.push({
+      id: "cancellations-increased",
+      title: "Order cancellations increased",
+      message:
+        "Cancellations are higher than the previous comparable reporting period.",
+      value: `+${cancellationChange.toFixed(1)}%`,
+      severity:
+        cancellationChange >= 20 ? "critical" : "warning",
+      sectionId: "revenue-orders",
+      actionLabel: "Review orders",
+      icon: XCircle,
+    });
+  }
+
+  /*
+   * Customer questions that still need admin action.
+   */
+  if (pendingQuestions > 0) {
+    alerts.push({
+      id: "pending-questions",
+      title: `${formatNumber(pendingQuestions)} unanswered ${
+        pendingQuestions === 1 ? "question" : "questions"
+      }`,
+      message:
+        "Customers are waiting for product information. Faster responses may improve purchase confidence.",
+      value: `${formatNumber(pendingQuestions)} pending`,
+      severity: pendingQuestions >= 10 ? "warning" : "info",
+      sectionId: "questions",
+      actionLabel: "Review questions",
+      icon: CircleHelp,
+    });
+  }
+
+  const severityOrder: Record<SmartAlertSeverity, number> = {
+    critical: 0,
+    warning: 1,
+    info: 2,
+  };
+
+  return alerts.sort(
+    (firstAlert, secondAlert) =>
+      severityOrder[firstAlert.severity] -
+      severityOrder[secondAlert.severity],
+  );
+}, [adminAnalytics]);
+
+const criticalAlertCount = smartAlerts.filter(
+  (alert) => alert.severity === "critical",
+).length;
+
+const warningAlertCount = smartAlerts.filter(
+  (alert) => alert.severity === "warning",
+).length;
+
+const informationAlertCount = smartAlerts.filter(
+  (alert) => alert.severity === "info",
+).length;
+
   const handleRangeChange = (range: AnalyticsRange) => {
     setSelectedRange(range);
 
@@ -950,36 +1238,32 @@ export default function AdminAnalytics() {
   };
 
   const scrollToSection = (sectionId: string) => {
-  const section = document.getElementById(sectionId);
+    const section = document.getElementById(sectionId);
 
-  if (!section) return;
+    if (!section) return;
 
-  const mainNavbarHeight = 80;
-  const quickNavigationHeight =
-    quickNavigationRef.current?.getBoundingClientRect().height ?? 0;
+    const mainNavbarHeight = 80;
+    const quickNavigationHeight =
+      quickNavigationRef.current?.getBoundingClientRect().height ?? 0;
 
-  const extraSpacing = 20;
+    const extraSpacing = 20;
 
-  const totalOffset =
-    mainNavbarHeight + quickNavigationHeight + extraSpacing;
+    const totalOffset = mainNavbarHeight + quickNavigationHeight + extraSpacing;
 
-  const sectionTop =
-    section.getBoundingClientRect().top + window.scrollY - totalOffset;
+    const sectionTop =
+      section.getBoundingClientRect().top + window.scrollY - totalOffset;
 
-  window.scrollTo({
-    top: sectionTop,
-    behavior: "smooth",
-  });
-};
+    window.scrollTo({
+      top: sectionTop,
+      behavior: "smooth",
+    });
+  };
 
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <section className="mb-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <section className="relative z-40 mb-6 overflow-visible rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div className="relative p-5 sm:p-6">
-            <div className="absolute -right-20 -top-20 h-56 w-56 rounded-full bg-slate-100" />
-            <div className="absolute -bottom-24 left-1/3 h-48 w-48 rounded-full bg-slate-50" />
-
             <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3">
                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-lg">
@@ -1024,20 +1308,215 @@ export default function AdminAnalytics() {
                 </div>
               </div>
 
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleRefreshAnalytics}
-                disabled={analyticsLoading}
-                className="h-11 rounded-xl border-slate-300 bg-white px-5 shadow-sm "
-              >
-                <RefreshCw
-                  size={16}
-                  className={analyticsLoading ? "animate-spin" : ""}
-                />
+              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                {/* Export Dropdown */}
+                <div ref={exportMenuRef} className="relative">
+                  <Button
+                    type="button"
+                    onClick={() => setShowExportMenu((previous) => !previous)}
+                    disabled={!adminAnalytics || analyticsLoading}
+                    className="
+        h-11 w-full justify-center rounded-xl
+        bg-slate-950 px-5 text-white shadow-lg
+        transition-all duration-300
+        hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-xl
+        sm:w-auto
+      "
+                  >
+                    <Download size={16} />
+                    Export
+                    <ChevronDown
+                      size={15}
+                      className={`transition-transform duration-200 ${
+                        showExportMenu ? "rotate-180" : ""
+                      }`}
+                    />
+                  </Button>
 
-                {analyticsLoading ? "Refreshing..." : "Refresh Data"}
-              </Button>
+                  {showExportMenu && (
+                    <div
+                      className="
+          absolute right-0 top-full z-50 mt-2
+          w-full min-w-72 overflow-hidden rounded-2xl
+          border border-slate-200 bg-white p-2
+          shadow-2xl sm:w-72
+        "
+                    >
+                      <div className="border-b border-slate-100 px-3 py-2.5">
+                        <p className="text-sm font-bold text-slate-950">
+                          Export analytics
+                        </p>
+
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          Download the currently selected date range.
+                        </p>
+                      </div>
+
+                      <div className="mt-2 space-y-1">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!adminAnalytics) return;
+
+                            setShowExportMenu(false);
+
+                            await exportAnalyticsPDF({
+                              analytics: adminAnalytics,
+                              rangeLabel: selectedRangeLabel,
+                              revenueChartElement: revenueChartRef.current,
+                            });
+                          }}
+                          className="
+              group flex w-full items-center gap-3 rounded-xl
+              px-3 py-3 text-left transition
+              hover:bg-red-50
+            "
+                        >
+                          <span
+                            className="
+                flex h-10 w-10 shrink-0 items-center justify-center
+                rounded-xl bg-red-100 text-red-700
+                transition group-hover:bg-red-200
+              "
+                          >
+                            <FileText size={19} />
+                          </span>
+
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-bold text-slate-900">
+                              Executive PDF
+                            </span>
+
+                            <span className="mt-0.5 block text-xs text-slate-500">
+                              KPIs, chart, products and insights
+                            </span>
+                          </span>
+
+                          <span className="rounded-md bg-red-100 px-2 py-1 text-[10px] font-bold text-red-700">
+                            PDF
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!adminAnalytics) return;
+
+                            exportAnalyticsExcel(
+                              adminAnalytics,
+                              selectedRangeLabel,
+                            );
+
+                            setShowExportMenu(false);
+                          }}
+                          className="
+              group flex w-full items-center gap-3 rounded-xl
+              px-3 py-3 text-left transition
+              hover:bg-emerald-50
+            "
+                        >
+                          <span
+                            className="
+                flex h-10 w-10 shrink-0 items-center justify-center
+                rounded-xl bg-emerald-100 text-emerald-700
+                transition group-hover:bg-emerald-200
+              "
+                          >
+                            <FileSpreadsheet size={19} />
+                          </span>
+
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-bold text-slate-900">
+                              Excel Workbook
+                            </span>
+
+                            <span className="mt-0.5 block text-xs text-slate-500">
+                              Separate sheets for every section
+                            </span>
+                          </span>
+
+                          <span className="rounded-md bg-emerald-100 px-2 py-1 text-[10px] font-bold text-emerald-700">
+                            XLSX
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!adminAnalytics) return;
+
+                            exportAnalyticsCSV(
+                              adminAnalytics,
+                              selectedRangeLabel,
+                            );
+
+                            setShowExportMenu(false);
+                          }}
+                          className="
+              group flex w-full items-center gap-3 rounded-xl
+              px-3 py-3 text-left transition
+              hover:bg-blue-50
+            "
+                        >
+                          <span
+                            className="
+                flex h-10 w-10 shrink-0 items-center justify-center
+                rounded-xl bg-blue-100 text-blue-700
+                transition group-hover:bg-blue-200
+              "
+                          >
+                            <Table2 size={19} />
+                          </span>
+
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-bold text-slate-900">
+                              CSV Report
+                            </span>
+
+                            <span className="mt-0.5 block text-xs text-slate-500">
+                              Lightweight spreadsheet-compatible data
+                            </span>
+                          </span>
+
+                          <span className="rounded-md bg-blue-100 px-2 py-1 text-[10px] font-bold text-blue-700">
+                            CSV
+                          </span>
+                        </button>
+                      </div>
+
+                      <div className="mt-2 rounded-xl bg-slate-50 px-3 py-2.5">
+                        <p className="text-[11px] leading-5 text-slate-500">
+                          Report period:{" "}
+                          <span className="font-bold text-slate-700">
+                            {selectedRangeLabel}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Refresh Button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleRefreshAnalytics}
+                  disabled={analyticsLoading}
+                  className="
+      h-11 w-full rounded-xl border-slate-300
+      bg-white px-5 shadow-sm
+      hover:border-slate-400 hover:bg-slate-50
+      sm:w-auto
+    "
+                >
+                  <RefreshCw
+                    size={16}
+                    className={analyticsLoading ? "animate-spin" : ""}
+                  />
+
+                  {analyticsLoading ? "Refreshing..." : "Refresh Data"}
+                </Button>
+              </div>
             </div>
           </div>
         </section>
@@ -1212,7 +1691,7 @@ export default function AdminAnalytics() {
 
         {/* Analytics Section Navigation */}
         <section
-        ref={quickNavigationRef}
+          ref={quickNavigationRef}
           className="
     sticky top-20 z-30
     mb-6 rounded-3xl
@@ -1231,7 +1710,7 @@ export default function AdminAnalytics() {
             </p>
           </div>
 
-          <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-5">
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-5">
             {ANALYTICS_SECTIONS.map((section) => {
               const Icon = section.icon;
 
@@ -1403,6 +1882,176 @@ export default function AdminAnalytics() {
                 iconBackgroundClassName="bg-orange-100"
               />
             </div>
+
+{/* Smart Alerts */}
+<section id="smart-alerts" className="mt-6 scroll-mt-72">
+  <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <div className="flex items-center gap-2">
+        <h2 className="text-xl font-bold tracking-tight text-slate-950">
+          Smart Alerts
+        </h2>
+
+        {smartAlerts.length > 0 && (
+          <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-red-600 px-1.5 text-xs font-bold text-white shadow-sm">
+            {formatNumber(smartAlerts.length)}
+          </span>
+        )}
+      </div>
+
+      <p className="mt-1 text-sm text-slate-500">
+        Important risks and operational tasks requiring your attention.
+      </p>
+    </div>
+
+    {smartAlerts.length > 0 && (
+      <div className="flex flex-wrap gap-2">
+        {criticalAlertCount > 0 && (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
+            <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+            {formatNumber(criticalAlertCount)} critical
+          </span>
+        )}
+
+        {warningAlertCount > 0 && (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+            {formatNumber(warningAlertCount)} warning
+          </span>
+        )}
+
+        {informationAlertCount > 0 && (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+            <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+            {formatNumber(informationAlertCount)} monitor
+          </span>
+        )}
+      </div>
+    )}
+  </div>
+
+  {smartAlerts.length > 0 ? (
+    <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="relative overflow-hidden border-b border-slate-100 bg-slate-950 p-5 text-white sm:p-6">
+        <div className="absolute -right-16 -top-16 h-44 w-44 rounded-full bg-red-500/10" />
+        <div className="absolute -bottom-20 right-24 h-40 w-40 rounded-full bg-amber-500/10" />
+
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10">
+              <BellRing size={23} />
+
+              <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-red-500 ring-4 ring-slate-950" />
+            </div>
+
+            <div>
+              <h3 className="text-lg font-bold">
+                Store Attention Centre
+              </h3>
+
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-300">
+                Alerts are generated automatically from the currently
+                selected analytics period.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              Requires attention
+            </p>
+
+            <p className="mt-1 text-xl font-bold text-white">
+              {formatNumber(smartAlerts.length)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 p-4 sm:p-6 lg:grid-cols-2">
+        {smartAlerts.map((alert) => {
+          const style = SMART_ALERT_STYLES[alert.severity];
+          const AlertIcon = alert.icon;
+
+          return (
+            <article
+              key={alert.id}
+              className={`group relative overflow-hidden rounded-3xl border p-5 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg ${style.cardClassName}`}
+            >
+              <div className="absolute -right-10 -top-10 h-28 w-28 rounded-full bg-white/50 transition-transform duration-500 group-hover:scale-125" />
+
+              <div className="relative">
+                <div className="flex items-start justify-between gap-4">
+                  <div
+                    className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${style.iconBackgroundClassName}`}
+                  >
+                    <AlertIcon
+                      size={21}
+                      className={style.iconClassName}
+                    />
+                  </div>
+
+                  <span
+                    className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${style.badgeClassName}`}
+                  >
+                    {style.label}
+                  </span>
+                </div>
+
+                <h3 className="mt-5 text-base font-bold text-slate-950">
+                  {alert.title}
+                </h3>
+
+                <p className="mt-2 text-sm leading-6 text-slate-600">
+                  {alert.message}
+                </p>
+
+                <div className="mt-5 flex flex-col gap-3 border-t border-slate-200/80 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                  <p
+                    className={`text-lg font-bold ${style.valueClassName}`}
+                  >
+                    {alert.value}
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={() => scrollToSection(alert.sectionId)}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm transition hover:border-slate-950 hover:bg-slate-950 hover:text-white"
+                  >
+                    {alert.actionLabel}
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </article>
+  ) : (
+    <article className="relative overflow-hidden rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
+      <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-emerald-100" />
+
+      <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-emerald-700 shadow-sm">
+          <PackageCheck size={23} />
+        </div>
+
+        <div>
+          <h3 className="font-bold text-emerald-950">
+            No urgent alerts
+          </h3>
+
+          <p className="mt-1 text-sm leading-6 text-emerald-700">
+            Inventory, payments, customer ratings and operational
+            indicators are currently within the configured thresholds.
+          </p>
+        </div>
+      </div>
+    </article>
+  )}
+</section>
+
             <div
               id="revenue-orders"
               className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3 scroll-mt-72"
@@ -1451,7 +2100,7 @@ export default function AdminAnalytics() {
 
                 <div className="p-3 sm:p-6">
                   {revenueTrend.length > 0 ? (
-                    <div className="h-80 w-full sm:h-96">
+                    <div ref={revenueChartRef} className="h-80 w-full bg-white">
                       <ResponsiveContainer width="100%" height="100%">
                         <AreaChart
                           data={revenueTrend}
