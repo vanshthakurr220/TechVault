@@ -811,7 +811,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       }
 
       setAccessToken(data.accessToken);
-      console.log(data);
 
       setUser(data.user);
       setUserLoggedIn(true);
@@ -1829,12 +1828,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
 
       try {
+
         const orderItems = items.map((item: any) => ({
           productId: item.productId?._id || item.productId,
-          name: item.name || item.productId?.name,
-          images: item.images || item.productId?.images || [],
-          price: item.price || item.productId?.price,
-          quantity: item.quantity,
+          name: item.name || item.productId?.name || "Product",
+          images:
+            Array.isArray(item.images) && item.images.length > 0
+              ? item.images
+              : Array.isArray(item.productId?.images)
+                ? item.productId.images
+                : [],
+          price: Number(item.price ?? item.productId?.price ?? 0),
+          quantity: Number(item.quantity ?? 1),
         }));
 
         const subtotal = orderItems.reduce(
@@ -1852,10 +1857,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           body: JSON.stringify({
             email: user.email,
             items: orderItems,
-
             shippingAddress,
             paymentMethod: paymentMethod.toLowerCase(),
-
             subtotal,
             couponCode,
             couponDiscount,
@@ -1869,20 +1872,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           throw new Error(data.message || "Failed to create order");
         }
 
-        await clearCart();
-        await fetchOrders();
-
-        notify.success("Order placed successfully!");
-
-        if (!response.ok) {
-          throw new Error(data.message || "Failed to create order");
-        }
-
-        // Save latest order
         sessionStorage.setItem("latestOrder", JSON.stringify(data.order));
 
         await clearCart();
         await fetchOrders();
+
+        notify.success("Order placed successfully!");
       } catch (error: any) {
         notify.error(error.message || "Failed to create order");
         throw error;
@@ -1890,7 +1885,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setLoading(false);
       }
     },
-    [user?.email, clearCart, fetchOrders],
+    [user?.email, clearCart, fetchOrders, notify],
   );
 
   // ========== REVIEW FUNCTIONS ==========

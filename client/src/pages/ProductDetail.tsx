@@ -1713,7 +1713,12 @@ ${productUrl}`;
                             <div className="flex items-start justify-between gap-5">
                               <div className="min-w-0 flex-1">
                                 <p className="text-[11px] font-extrabold uppercase tracking-[0.13em] text-slate-400">
-                                  {key.replace(/_/g, " ")}
+                                  {key
+                                    .replace(/([a-z])([A-Z])/g, "$1 $2")
+                                    .replace(/_/g, " ")
+                                    .replace(/\b\w/g, (char) =>
+                                      char.toUpperCase(),
+                                    )}
                                 </p>
 
                                 <p className="mt-2 break-words text-sm font-bold leading-6 text-slate-900 sm:text-base">

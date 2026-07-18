@@ -39,14 +39,14 @@ export default function Checkout() {
 
   // Memoize loadCart to prevent it being a dependency that changes
   const loadCart = useCallback(async () => {
-    try {
-      const items = await getCartItems();
-      setCartItems(items);
-    } catch (error) {
-      console.error("Error fetching cart:", error);
-      toast.error("Failed to load cart items");
-    }
-  }, [getCartItems]);
+  try {
+    const items = await getCartItems();
+    setCartItems(items);
+  } catch (error) {
+    console.error("Error fetching cart:", error);
+    toast.error("Failed to load cart items");
+  }
+}, [getCartItems]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

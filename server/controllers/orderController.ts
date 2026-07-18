@@ -29,7 +29,6 @@ export const createOrder = async (
 
     if (
       !email ||
-      !items ||
       !Array.isArray(items) ||
       items.length === 0 ||
       !shippingAddress ||
@@ -42,7 +41,7 @@ export const createOrder = async (
       return;
     }
 
-    const payment = paymentMethod.toLowerCase();
+    const payment = String(paymentMethod).toLowerCase();
 
     const validPaymentMethods = ["cod", "card", "upi"];
 
@@ -55,56 +54,94 @@ export const createOrder = async (
     }
 
     // =====================
-    // CALCULATE TOTAL
+    // VERIFY PRODUCTS
     // =====================
+
+    const verifiedItems = [];
 
     for (const item of items) {
       const product = await Product.findById(item.productId);
 
       if (!product) {
         res.status(404).json({
-          message: `Product not found`,
+          message: "Product not found",
         });
 
         return;
       }
 
-      if (product.stockQuantity < item.quantity) {
+      const quantity = Number(item.quantity);
+
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        res.status(400).json({
+          message: `Invalid quantity for ${product.name}`,
+        });
+
+        return;
+      }
+
+      if (product.stockQuantity < quantity) {
         res.status(400).json({
           message: `${product.name} has only ${product.stockQuantity} units available`,
         });
 
         return;
       }
+
+      const productImages = Array.isArray(product.images)
+        ? product.images.filter(
+            (image): image is string =>
+              typeof image === "string" && image.trim().length > 0,
+          )
+        : [];
+
+      const legacyImage =
+        typeof (product as any).image === "string" &&
+        (product as any).image.trim().length > 0
+          ? (product as any).image.trim()
+          : "";
+
+      verifiedItems.push({
+        productId: product._id,
+        name: product.name,
+        images:
+          productImages.length > 0
+            ? productImages
+            : legacyImage
+              ? [legacyImage]
+              : [],
+        price: Number(product.price),
+        quantity,
+      });
     }
 
-    const subtotal = items.reduce(
-      (
-        total: number,
-        item: {
-          price: number;
-          quantity: number;
-        },
-      ) => total + item.price * item.quantity,
+    // =====================
+    // CALCULATE TOTAL
+    // =====================
+
+    const subtotal = verifiedItems.reduce(
+      (total, item) => total + item.price * item.quantity,
       0,
     );
 
-    const totalAmount = subtotal - (couponDiscount || 0);
+    const normalizedCouponDiscount = Math.max(0, Number(couponDiscount || 0));
+
+    const totalAmount = Math.max(0, subtotal - normalizedCouponDiscount);
 
     // =====================
     // CREATE ORDER
     // =====================
 
     const order = await Order.create({
-      userId: email, // storing email in userId field
+      userId: email,
 
-      items,
+      items: verifiedItems,
 
       totalAmount,
 
-      couponCode: couponCode || "",
+      couponCode: couponCode ? String(couponCode).trim().toUpperCase() : "",
 
-      couponDiscount: couponDiscount || 0,
+      couponDiscount: normalizedCouponDiscount,
 
       shippingAddress,
 
@@ -115,10 +152,14 @@ export const createOrder = async (
       status: "pending",
     });
 
+    // =====================
+    // UPDATE COUPON
+    // =====================
+
     if (couponCode) {
       await Coupon.findOneAndUpdate(
         {
-          code: couponCode.toUpperCase(),
+          code: String(couponCode).trim().toUpperCase(),
         },
         {
           $inc: {
@@ -128,21 +169,35 @@ export const createOrder = async (
       );
     }
 
-    for (const item of items) {
+    // =====================
+    // UPDATE PRODUCTS
+    // =====================
+
+    for (const item of verifiedItems) {
       const product = await Product.findById(item.productId);
 
       if (!product) continue;
 
-      product.stockQuantity -= item.quantity;
+      product.stockQuantity = Math.max(
+        0,
+        product.stockQuantity - item.quantity,
+      );
+
       product.inStock = product.stockQuantity > 0;
-      product.unitsSold += item.quantity;
-      product.revenue += item.quantity * item.price;
+
+      product.unitsSold = (product.unitsSold || 0) + item.quantity;
+
+      product.revenue = (product.revenue || 0) + item.quantity * item.price;
 
       await product.save();
     }
 
+    // =====================
+    // SEND EMAIL
+    // =====================
+
     try {
-      const emailSent = await sendOrderConfirmationEmail(
+      await sendOrderConfirmationEmail(
         email,
         shippingAddress.fullName || "Customer",
         order,
@@ -156,7 +211,7 @@ export const createOrder = async (
       order,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Create order error:", error);
 
     res.status(500).json({
       message: "Failed to place order",
@@ -188,20 +243,19 @@ export const getUserOrders = async (
       userId: user.email,
     })
       .sort({ createdAt: -1 })
-      .populate("items.productId", "name image")
-      .select(
-        `
+      .populate("items.productId", "name images")
+      .select(`
   items
   totalAmount
   couponCode
   couponDiscount
   status
+  statusHistory
   paymentStatus
   paymentMethod
   shippingAddress
   createdAt
-`,
-      );
+`)
 
     res.status(200).json({
       message: "User orders fetched successfully",

@@ -23,19 +23,17 @@ import { cn } from "@/lib/utils";
 
 interface Order {
   _id: string;
+
   items: {
     productId?: {
       name?: string;
-      images?: string[]; // ✅ updated from image → images[]
+      images?: string[];
       image?: string;
     };
 
     name: string;
-
-    images?: string[]; // ✅ new field (primary support for multi-images)
-
-    image?: string; // ⚠️ legacy fallback for old orders
-
+    images?: string[];
+    image?: string;
     price: number;
     quantity: number;
   }[];
@@ -46,6 +44,14 @@ interface Order {
   couponDiscount?: number;
 
   status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+
+  statusHistory?: {
+    pendingAt?: string;
+    processingAt?: string;
+    shippedAt?: string;
+    deliveredAt?: string;
+    cancelledAt?: string;
+  };
 
   paymentStatus: "pending" | "paid" | "failed";
 
@@ -138,6 +144,8 @@ export default function Orders() {
       (sum, item) => sum + item.price * item.quantity,
       0,
     );
+
+    
 
     const formatMoney = (amount: number) =>
       `Rs. ${Math.round(amount).toLocaleString("en-IN")}`;
@@ -456,6 +464,18 @@ export default function Orders() {
     doc.save(`${invoiceNo}.pdf`);
   };
 
+  const formatStatusTime = (date?: string) => {
+  if (!date) return "";
+
+  return new Date(date).toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20">
       {/* Premium Header */}
@@ -555,6 +575,7 @@ export default function Orders() {
             {orders.map((order) => {
               const isExpanded = expandedOrders[order._id];
               const currentStep = getStatusStep(order.status);
+              console.log("ORDER STATUS HISTORY:", order._id, order.statusHistory);
 
               return (
                 <div
@@ -635,7 +656,7 @@ export default function Orders() {
                   {isExpanded && (
                     <div className="px-6 pb-8 pt-2 border-t border-slate-50 animate-in fade-in slide-in-from-top-2 duration-300">
                       {/* Order Progress Timeline */}
-                      <div className="mb-10 mt-4 px-4">
+                      <div className="mb-16 mt-6 px-4">
                         <div className="relative flex justify-between">
                           {/* Background Line */}
                           <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-100 -translate-y-1/2 z-0"></div>
@@ -654,7 +675,7 @@ export default function Orders() {
                             return (
                               <div
                                 key={i}
-                                className="relative z-10 flex flex-col items-center"
+                                className="relative z-10 flex flex-col items-center w-28"
                               >
                                 <div
                                   className={cn(
@@ -685,6 +706,15 @@ export default function Orders() {
                                 >
                                   {s.label}
                                 </span>
+                                <p className="mt-2 min-h-[34px] text-center text-[11px] leading-4 text-slate-500 font-medium">
+  {s.step === 1 && formatStatusTime(order.statusHistory?.pendingAt)}
+
+  {s.step === 2 && formatStatusTime(order.statusHistory?.processingAt)}
+
+  {s.step === 3 && formatStatusTime(order.statusHistory?.shippedAt)}
+
+  {s.step === 4 && formatStatusTime(order.statusHistory?.deliveredAt)}
+</p>
                               </div>
                             );
                           })}

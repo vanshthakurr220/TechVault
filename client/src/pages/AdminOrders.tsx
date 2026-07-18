@@ -11,6 +11,7 @@ import {
   MapPin,
   User,
   Calendar,
+  CheckCircle2,
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { useApp } from "@/contexts/AppContext";
@@ -37,6 +38,13 @@ interface Order {
   };
   totalAmount: number;
   status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
+  statusHistory?: {
+    pendingAt?: string;
+    processingAt?: string;
+    shippedAt?: string;
+    deliveredAt?: string;
+    cancelledAt?: string;
+  };
   paymentStatus: "pending" | "paid" | "failed";
   paymentMethod: string;
   createdAt: string;
@@ -236,6 +244,19 @@ export default function AdminOrders() {
       default:
         return "bg-slate-100 text-slate-700 border-slate-200";
     }
+  };
+
+  const formatStatusDateTime = (date?: string) => {
+    if (!date) return "Not reached";
+
+    return new Date(date).toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
   };
 
   return (
@@ -705,6 +726,169 @@ export default function AdminOrders() {
                       <span className="text-xl sm:text-2xl font-black text-primary">
                         ₹{selectedOrder.totalAmount.toLocaleString()}
                       </span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-3xl border p-5 sm:p-6">
+                    <div className="mb-6 flex items-center justify-between gap-4">
+                      <div>
+                        <h4 className="font-bold flex items-center gap-2">
+                          <Calendar size={18} />
+                          Status History
+                        </h4>
+
+                        <p className="mt-1 text-xs text-slate-500">
+                          Complete timeline of this order
+                        </p>
+                      </div>
+
+                      <span
+                        className={`rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-wider ${
+                          selectedOrder.status === "delivered"
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : selectedOrder.status === "cancelled"
+                              ? "border-red-200 bg-red-50 text-red-700"
+                              : selectedOrder.status === "shipped"
+                                ? "border-violet-200 bg-violet-50 text-violet-700"
+                                : selectedOrder.status === "processing"
+                                  ? "border-blue-200 bg-blue-50 text-blue-700"
+                                  : "border-amber-200 bg-amber-50 text-amber-700"
+                        }`}
+                      >
+                        {selectedOrder.status}
+                      </span>
+                    </div>
+
+                    <div className="relative space-y-0">
+                      {[
+                        {
+                          key: "pending",
+                          label: "Order placed",
+                          description:
+                            "The customer successfully placed the order.",
+                          date:
+                            selectedOrder.statusHistory?.pendingAt ||
+                            selectedOrder.createdAt,
+                          reached: true,
+                        },
+                        {
+                          key: "processing",
+                          label: "Processing",
+                          description:
+                            "The order is being prepared for dispatch.",
+                          date: selectedOrder.statusHistory?.processingAt,
+                          reached: Boolean(
+                            selectedOrder.statusHistory?.processingAt,
+                          ),
+                        },
+                        {
+                          key: "shipped",
+                          label: "Shipped",
+                          description:
+                            "The order has left the dispatch facility.",
+                          date: selectedOrder.statusHistory?.shippedAt,
+                          reached: Boolean(
+                            selectedOrder.statusHistory?.shippedAt,
+                          ),
+                        },
+                        {
+                          key: "delivered",
+                          label: "Delivered",
+                          description: "The order was successfully delivered.",
+                          date: selectedOrder.statusHistory?.deliveredAt,
+                          reached: Boolean(
+                            selectedOrder.statusHistory?.deliveredAt,
+                          ),
+                        },
+                      ].map((step, index, steps) => {
+                        const isLast = index === steps.length - 1;
+
+                        return (
+                          <div
+                            key={step.key}
+                            className="relative grid grid-cols-[36px_1fr] gap-3"
+                          >
+                            {!isLast && (
+                              <div
+                                className={`absolute left-[17px] top-9 h-[calc(100%-12px)] w-0.5 ${
+                                  step.reached
+                                    ? "bg-primary/35"
+                                    : "bg-slate-200"
+                                }`}
+                              />
+                            )}
+
+                            <div
+                              className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-full border-4 border-white shadow-sm ${
+                                step.reached
+                                  ? "bg-primary text-white"
+                                  : "bg-slate-100 text-slate-400"
+                              }`}
+                            >
+                              <CheckCircle2 size={16} />
+                            </div>
+
+                            <div className="pb-6">
+                              <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                                <div>
+                                  <p
+                                    className={`text-sm font-bold ${
+                                      step.reached
+                                        ? "text-slate-900"
+                                        : "text-slate-400"
+                                    }`}
+                                  >
+                                    {step.label}
+                                  </p>
+
+                                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                                    {step.description}
+                                  </p>
+                                </div>
+
+                                <p
+                                  className={`shrink-0 text-xs font-semibold ${
+                                    step.reached
+                                      ? "text-slate-600"
+                                      : "text-slate-400"
+                                  }`}
+                                >
+                                  {formatStatusDateTime(step.date)}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {selectedOrder.status === "cancelled" && (
+                        <div className="relative grid grid-cols-[36px_1fr] gap-3">
+                          <div className="relative z-10 flex h-9 w-9 items-center justify-center rounded-full border-4 border-white bg-red-500 text-white shadow-sm">
+                            <X size={16} />
+                          </div>
+
+                          <div>
+                            <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                              <div>
+                                <p className="text-sm font-bold text-red-700">
+                                  Order cancelled
+                                </p>
+
+                                <p className="mt-1 text-xs leading-5 text-red-600/80">
+                                  This order was cancelled and will not proceed
+                                  further.
+                                </p>
+                              </div>
+
+                              <p className="shrink-0 text-xs font-semibold text-red-600">
+                                {formatStatusDateTime(
+                                  selectedOrder.statusHistory?.cancelledAt,
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
