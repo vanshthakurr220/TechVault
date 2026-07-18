@@ -216,14 +216,21 @@ export interface QuestionAnalytics {
 // Coupons
 // ============================================================================
 
+export interface CouponAnalyticsItem {
+  code: string;
+  usageCount: number;
+  revenue: number;
+  discountGiven: number;
+}
+
 export interface CouponAnalytics {
   totalCouponUsage: number;
   ordersWithCoupons: number;
   couponRevenue: number;
   totalDiscountGiven: number;
   averageOrderValueWithCoupons: number;
-  mostUsedCoupon: string | null;
-  topCoupons: any[];
+  mostUsedCoupon: CouponAnalyticsItem | null;
+  topCoupons: CouponAnalyticsItem[];
 }
 
 // ============================================================================

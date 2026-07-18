@@ -3010,7 +3010,10 @@ export default function AdminAnalytics() {
                       </p>
 
                       <p className="mt-1 break-all text-lg font-bold text-slate-950">
-                        {couponAnalytics?.mostUsedCoupon ?? "No coupon"}
+                        {typeof couponAnalytics?.mostUsedCoupon === "string"
+                          ? couponAnalytics.mostUsedCoupon
+                          : couponAnalytics?.mostUsedCoupon?.code ||
+                            "No coupon"}
                       </p>
                     </div>
 
