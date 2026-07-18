@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -67,6 +67,7 @@ import {
   CheckCircle2,
   TrendingDown,
   Lightbulb,
+  Package,
 } from "lucide-react";
 import { Link } from "wouter";
 import AnimatedCounter from "@/components/admin/AnimatedCounter";
@@ -83,6 +84,8 @@ interface SummaryCardProps {
 }
 
 type ProductMetric = "views" | "wishlistCount" | "revenue";
+
+
 
 interface ProductPerformanceCardProps {
   title: string;
@@ -117,6 +120,19 @@ const formatCurrency = (value: number) =>
 
 const formatNumber = (value: number) =>
   new Intl.NumberFormat("en-IN").format(value);
+
+const ANALYTICS_SECTIONS = [
+  { id: "overview", label: "Overview", icon: BarChart3 },
+  { id: "revenue-orders", label: "Revenue & Orders", icon: TrendingUp },
+  { id: "payments", label: "Payments", icon: CreditCard },
+  { id: "products", label: "Products", icon: Package },
+  { id: "inventory", label: "Inventory", icon: Boxes },
+  { id: "customers", label: "Customers", icon: Users },
+  { id: "reviews", label: "Reviews", icon: Star },
+  { id: "questions", label: "Questions", icon: MessageSquareText },
+  { id: "coupons", label: "Coupons", icon: TicketPercent },
+  { id: "insights", label: "Insights", icon: Lightbulb },
+];
 
 const ORDER_STATUS_COLORS: Record<string, string> = {
   pending: "#f59e0b",
@@ -703,6 +719,7 @@ const ANALYTICS_GROUP_OPTIONS: {
 ];
 
 export default function AdminAnalytics() {
+  const quickNavigationRef = useRef<HTMLElement | null>(null);
   const {
     adminAnalytics,
     analyticsLoading,
@@ -931,6 +948,29 @@ export default function AdminAnalytics() {
       endDate: selectedRange === "custom" ? appliedEndDate : undefined,
     });
   };
+
+  const scrollToSection = (sectionId: string) => {
+  const section = document.getElementById(sectionId);
+
+  if (!section) return;
+
+  const mainNavbarHeight = 80;
+  const quickNavigationHeight =
+    quickNavigationRef.current?.getBoundingClientRect().height ?? 0;
+
+  const extraSpacing = 20;
+
+  const totalOffset =
+    mainNavbarHeight + quickNavigationHeight + extraSpacing;
+
+  const sectionTop =
+    section.getBoundingClientRect().top + window.scrollY - totalOffset;
+
+  window.scrollTo({
+    top: sectionTop,
+    behavior: "smooth",
+  });
+};
 
   return (
     <main className="min-h-screen bg-slate-50">
@@ -1170,6 +1210,78 @@ export default function AdminAnalytics() {
           </div>
         </section>
 
+        {/* Analytics Section Navigation */}
+        <section
+        ref={quickNavigationRef}
+          className="
+    sticky top-20 z-30
+    mb-6 rounded-3xl
+    border border-slate-200
+    bg-white/95 p-4
+    shadow-lg backdrop-blur-xl
+  "
+        >
+          <div className="mb-4">
+            <h3 className="text-lg font-bold text-slate-900">
+              Quick Navigation
+            </h3>
+
+            <p className="text-sm text-slate-500">
+              Jump directly to any analytics section.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 lg:grid-cols-5">
+            {ANALYTICS_SECTIONS.map((section) => {
+              const Icon = section.icon;
+
+              return (
+                <button
+                  key={section.id}
+                  type="button"
+                  onClick={() => scrollToSection(section.id)}
+                  className="
+            group
+            flex flex-col items-center justify-center
+            rounded-xl border border-slate-200
+            bg-slate-50 p-2.5
+            transition-all duration-300
+            hover:-translate-y-1
+            hover:border-slate-900
+            hover:bg-slate-900
+            hover:shadow-lg
+            active:scale-95
+          "
+                >
+                  <div
+                    className="
+              mb-1 flex h-8 w-8 items-center justify-center
+              rounded-lg bg-white text-slate-700
+              transition-all
+              group-hover:bg-slate-800
+              group-hover:text-white
+            "
+                  >
+                    <Icon size={16} />
+                  </div>
+
+                  <span
+                    className="
+              text-center text-[9px]
+              font-bold leading-tight
+              text-slate-600
+              transition-colors
+              group-hover:text-white
+            "
+                  >
+                    {section.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
         {analyticsLoading && !adminAnalytics ? (
           <section className="rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-sm">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100">
@@ -1206,7 +1318,7 @@ export default function AdminAnalytics() {
             </Button>
           </section>
         ) : summary ? (
-          <section>
+          <section id="overview" className="scroll-mt-72">
             <div className="mb-4">
               <h2 className="text-xl font-bold tracking-tight text-slate-950">
                 Performance Overview
@@ -1291,7 +1403,10 @@ export default function AdminAnalytics() {
                 iconBackgroundClassName="bg-orange-100"
               />
             </div>
-            <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <div
+              id="revenue-orders"
+              className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3 scroll-mt-72"
+            >
               {/* Revenue Trend */}
               <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:col-span-2">
                 <div className="flex flex-col gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
@@ -1555,7 +1670,10 @@ export default function AdminAnalytics() {
             </div>
 
             {/* Payment Methods */}
-            <article className="mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <article
+              id="payments"
+              className="scroll-mt-72 mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm"
+            >
               <div className="flex flex-col gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
                 <div className="flex items-start gap-3">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
@@ -2020,7 +2138,7 @@ export default function AdminAnalytics() {
             </div>
 
             {/* Product Performance */}
-            <section className="mt-6">
+            <section id="products" className="scroll-mt-72 mt-6">
               <div className="mb-4">
                 <h2 className="text-xl font-bold tracking-tight text-slate-950">
                   Product Performance
@@ -2072,7 +2190,7 @@ export default function AdminAnalytics() {
             </section>
 
             {/* Inventory Analytics */}
-            <section className="mt-6">
+            <section id="inventory" className="scroll-mt-72 mt-6">
               <div className="mb-4">
                 <h2 className="text-xl font-bold tracking-tight text-slate-950">
                   Inventory Analytics
@@ -2235,7 +2353,7 @@ export default function AdminAnalytics() {
             </section>
 
             {/* Customer Analytics */}
-            <section className="mt-6">
+            <section id="customers" className=" scroll-mt-72 mt-6">
               <div className="mb-4">
                 <h2 className="text-xl font-bold tracking-tight text-slate-950">
                   Customer Analytics
@@ -2335,7 +2453,7 @@ export default function AdminAnalytics() {
             </section>
 
             {/* Review Analytics */}
-            <section className="mt-6">
+            <section id="reviews" className="mt-6 scroll-mt-72">
               <div className="mb-4">
                 <h2 className="text-xl font-bold tracking-tight text-slate-950">
                   Review Analytics
@@ -2521,7 +2639,7 @@ export default function AdminAnalytics() {
             </section>
 
             {/* Product Question Analytics */}
-            <section className="mt-6">
+            <section id="questions" className="scroll-mt-72 mt-6">
               <div className="mb-4">
                 <h2 className="text-xl font-bold tracking-tight text-slate-950">
                   Product Question Analytics
@@ -2771,7 +2889,7 @@ export default function AdminAnalytics() {
             </section>
 
             {/* Coupon Analytics */}
-            <section className="mt-6">
+            <section id="coupons" className="scroll-mt-72 mt-6">
               <div className="mb-4">
                 <h2 className="text-xl font-bold tracking-tight text-slate-950">
                   Coupon Analytics
@@ -3044,7 +3162,7 @@ export default function AdminAnalytics() {
             </section>
 
             {/* Business Insights */}
-            <section className="mt-6">
+            <section id="insights" className="scroll-mt-72 mt-6">
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                   <h2 className="text-xl font-bold tracking-tight text-slate-950">

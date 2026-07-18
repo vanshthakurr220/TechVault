@@ -21,6 +21,7 @@ import {
   Star,
   Ticket,
   MessageSquare,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/contexts/AppContext";
@@ -71,20 +72,23 @@ export default function Navbar() {
   ];
 
   const adminLinks = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
-  { label: "Users", icon: Users, href: "/admin/users" },
-  { label: "Products", icon: Store, href: "/admin/products" },
-  {
-    label: "Product Questions",
-    icon: MessageSquare,
-    href: "/admin/product-questions",
-  },
-  { label: "Orders", icon: Package, href: "/admin/orders" },
-  { label: "Reviews", icon: Star, href: "/admin/reviews" },
-  { label: "Wishlists", icon: Heart, href: "/admin/wishlists" },
-  { label: "Coupons", icon: Ticket, href: "/admin/coupons" },
-  { label: "Contacts", icon: Mail, href: "/admin/contacts" },
-];
+    { label: "Dashboard", icon: LayoutDashboard, href: "/admin" },
+    { label: "Analytics", icon: BarChart3, href: "/admin/analytics" },
+    { label: "Users", icon: Users, href: "/admin/users" },
+    { label: "Products", icon: Store, href: "/admin/products" },
+
+    {
+      label: "Product Questions",
+      icon: MessageSquare,
+      href: "/admin/product-questions",
+    },
+
+    { label: "Orders", icon: Package, href: "/admin/orders" },
+    { label: "Reviews", icon: Star, href: "/admin/reviews" },
+    { label: "Wishlists", icon: Heart, href: "/admin/wishlists" },
+    { label: "Coupons", icon: Ticket, href: "/admin/coupons" },
+    { label: "Contacts", icon: Mail, href: "/admin/contacts" },
+  ];
 
   return (
     <nav
