@@ -3,7 +3,10 @@ import { Order } from "../models/Order.js";
 import { User } from "server/models/User.js";
 import Coupon from "server/models/Coupon.js";
 import { Product } from "server/models/Products.js";
-import { sendOrderConfirmationEmail } from "server/utils/emailService.js";
+import {
+  sendOrderConfirmationEmail,
+  sendOrderStatusEmail,
+} from "server/utils/emailService.js";
 import CouponUsage from "server/models/CouponUsage.js";
 
 // ===============================
@@ -421,63 +424,4 @@ export const getAllOrders = async (req: Request, res: Response) => {
   }
 };
 
-// ===============================
-// 🟢 UPDATE ORDER STATUS
-// ===============================
-export const updateOrderStatus = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { status, paymentStatus } = req.body;
 
-    const updatedOrder = await Order.findByIdAndUpdate(
-      id,
-      { status, paymentStatus },
-      { new: true },
-    );
-
-    if (!updatedOrder) {
-      return res.status(404).json({
-        message: "Order not found",
-      });
-    }
-
-    res.status(200).json({
-      message: "Order updated successfully",
-      order: updatedOrder,
-    });
-  } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      message: "Failed to update order",
-    });
-  }
-};
-
-// ===============================
-// 🗑️ DELETE ORDER
-// ===============================
-export const deleteOrder = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-
-    const deletedOrder = await Order.findByIdAndDelete(id);
-
-    if (!deletedOrder) {
-      return res.status(404).json({
-        message: "Order not found",
-      });
-    }
-
-    res.status(200).json({
-      message: "Order deleted successfully",
-      order: deletedOrder,
-    });
-  } catch (error) {
-    console.error(error);
-
-    res.status(500).json({
-      message: "Failed to delete order",
-    });
-  }
-};

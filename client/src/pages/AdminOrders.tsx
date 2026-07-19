@@ -216,6 +216,20 @@ export default function AdminOrders() {
     };
   }, [orders]);
 
+  const allowedStatusTransitions: Record<Order["status"], Order["status"][]> = {
+  pending: ["processing", "cancelled"],
+  processing: ["shipped", "cancelled"],
+  shipped: ["delivered"],
+  delivered: [],
+  cancelled: [],
+};
+
+const getAvailableStatuses = (
+  currentStatus: Order["status"],
+): Order["status"][] => {
+  return [currentStatus, ...allowedStatusTransitions[currentStatus]];
+};
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "delivered":
@@ -471,20 +485,29 @@ export default function AdminOrders() {
 
                     <td className="px-6 py-4">
                       <select
-                        value={order.status}
-                        onChange={(e) =>
-                          updateOrderStatus(order._id, e.target.value as any)
-                        }
-                        className={`text-[11px] font-bold py-1.5 px-2 rounded-lg border outline-none cursor-pointer ${getStatusColor(
-                          order.status,
-                        )}`}
-                      >
-                        <option value="pending">Pending</option>
-                        <option value="processing">Processing</option>
-                        <option value="shipped">Shipped</option>
-                        <option value="delivered">Delivered</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
+  value={order.status}
+  disabled={
+    order.status === "delivered" || order.status === "cancelled"
+  }
+  onChange={(e) =>
+    updateOrderStatus(order._id, e.target.value as Order["status"])
+  }
+  className={`
+    text-[11px] font-bold py-1.5 px-2 rounded-lg border outline-none
+    ${
+      order.status === "delivered" || order.status === "cancelled"
+        ? "cursor-not-allowed opacity-70"
+        : "cursor-pointer"
+    }
+    ${getStatusColor(order.status)}
+  `}
+>
+  {getAvailableStatuses(order.status).map((status) => (
+    <option key={status} value={status}>
+      {status.charAt(0).toUpperCase() + status.slice(1)}
+    </option>
+  ))}
+</select>
                     </td>
 
                     <td className="px-6 py-4 text-right">
@@ -583,20 +606,29 @@ export default function AdminOrders() {
                 </select>
 
                 <select
-                  value={order.status}
-                  onChange={(e) =>
-                    updateOrderStatus(order._id, e.target.value as any)
-                  }
-                  className={`w-full text-xs font-bold py-2.5 px-3 rounded-xl border outline-none uppercase ${getStatusColor(
-                    order.status,
-                  )}`}
-                >
-                  <option value="pending">Pending</option>
-                  <option value="processing">Processing</option>
-                  <option value="shipped">Shipped</option>
-                  <option value="delivered">Delivered</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+  value={order.status}
+  disabled={
+    order.status === "delivered" || order.status === "cancelled"
+  }
+  onChange={(e) =>
+    updateOrderStatus(order._id, e.target.value as Order["status"])
+  }
+  className={`
+    text-[11px] font-bold py-1.5 px-2 rounded-lg border outline-none
+    ${
+      order.status === "delivered" || order.status === "cancelled"
+        ? "cursor-not-allowed opacity-70"
+        : "cursor-pointer"
+    }
+    ${getStatusColor(order.status)}
+  `}
+>
+  {getAvailableStatuses(order.status).map((status) => (
+    <option key={status} value={status}>
+      {status.charAt(0).toUpperCase() + status.slice(1)}
+    </option>
+  ))}
+</select>
               </div>
             </div>
           ))

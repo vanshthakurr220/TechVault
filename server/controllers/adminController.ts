@@ -468,6 +468,47 @@ export const fetchAllOrders = async (
 };
 
 // CHANGE ORDER STATUS
+type OrderStatus =
+  | "pending"
+  | "processing"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
+
+const validOrderStatuses: OrderStatus[] = [
+  "pending",
+  "processing",
+  "shipped",
+  "delivered",
+  "cancelled",
+];
+
+const allowedOrderStatusTransitions: Record<OrderStatus, OrderStatus[]> = {
+  pending: ["processing", "cancelled"],
+  processing: ["shipped", "cancelled"],
+  shipped: ["delivered"],
+  delivered: [],
+  cancelled: [],
+};
+
+const orderStatusHistoryFields: Record<
+  OrderStatus,
+  | "pendingAt"
+  | "processingAt"
+  | "shippedAt"
+  | "deliveredAt"
+  | "cancelledAt"
+> = {
+  pending: "pendingAt",
+  processing: "processingAt",
+  shipped: "shippedAt",
+  delivered: "deliveredAt",
+  cancelled: "cancelledAt",
+};
+
+// ===============================
+// CHANGE ORDER STATUS
+// ===============================
 export const changeStatusOrder = async (
   req: Request,
   res: Response,
@@ -475,48 +516,41 @@ export const changeStatusOrder = async (
   try {
     const { id, status } = req.body;
 
-    const allowedStatuses = [
-      "pending",
-      "processing",
-      "shipped",
-      "delivered",
-      "cancelled",
-    ];
-
-    if (!allowedStatuses.includes(status)) {
+    if (!id) {
       res.status(400).json({
-        message: "Invalid order status",
+        message: "Order ID is required",
       });
 
       return;
     }
 
-    const statusDateFieldMap = {
-      pending: "statusHistory.pendingAt",
-      processing: "statusHistory.processingAt",
-      shipped: "statusHistory.shippedAt",
-      delivered: "statusHistory.deliveredAt",
-      cancelled: "statusHistory.cancelledAt",
-    } as const;
+    const requestedStatus = String(status || "")
+      .trim()
+      .toLowerCase() as OrderStatus;
 
-    const statusDateField =
-      statusDateFieldMap[status as keyof typeof statusDateFieldMap];
+    if (!requestedStatus) {
+      res.status(400).json({
+        message: "Order status is required",
+      });
 
-    const updatedOrder = await Order.findByIdAndUpdate(
-      id,
-      {
-        $set: {
-          status,
-          [statusDateField]: new Date(),
-        },
-      },
-      {
-        new: true,
-        runValidators: true,
-      },
-    ).populate("userId", "username email name");
+      return;
+    }
 
-    if (!updatedOrder) {
+    if (!validOrderStatuses.includes(requestedStatus)) {
+      res.status(400).json({
+        message: "Invalid order status",
+        validStatuses: validOrderStatuses,
+      });
+
+      return;
+    }
+
+    const order = await Order.findById(id).populate(
+      "userId",
+      "username email name",
+    );
+
+    if (!order) {
       res.status(404).json({
         message: "Order not found",
       });
@@ -524,29 +558,111 @@ export const changeStatusOrder = async (
       return;
     }
 
-    try {
-      const user: any = updatedOrder.userId;
+    const previousStatus = order.status as OrderStatus;
 
-      await sendOrderStatusEmail(
-        user?.email || updatedOrder.userId,
-        user?.username ||
-          user?.name ||
-          updatedOrder.shippingAddress?.fullName ||
-          "Customer",
-        updatedOrder,
-        status,
-      );
+    if (previousStatus === requestedStatus) {
+      res.status(400).json({
+        message: `Order is already ${requestedStatus}`,
+        currentStatus: previousStatus,
+        allowedNextStatuses:
+          allowedOrderStatusTransitions[previousStatus] || [],
+      });
+
+      return;
+    }
+
+    const allowedNextStatuses =
+      allowedOrderStatusTransitions[previousStatus] || [];
+
+    if (!allowedNextStatuses.includes(requestedStatus)) {
+      res.status(400).json({
+        message: `Order status cannot be changed from ${previousStatus} to ${requestedStatus}`,
+        currentStatus: previousStatus,
+        allowedNextStatuses,
+      });
+
+      return;
+    }
+
+    order.status = requestedStatus;
+
+    if (!order.statusHistory) {
+      order.statusHistory = {};
+    }
+
+    const historyField = orderStatusHistoryFields[requestedStatus];
+
+    if (!order.statusHistory[historyField]) {
+      order.statusHistory[historyField] = new Date();
+    }
+
+    // COD orders become paid after successful delivery.
+    if (
+      requestedStatus === "delivered" &&
+      order.paymentMethod === "cod" &&
+      order.paymentStatus !== "paid"
+    ) {
+      order.paymentStatus = "paid";
+    }
+
+    await order.save();
+
+    try {
+      const populatedUser = order.userId as any;
+
+      const customerEmail =
+        populatedUser?.email ||
+        (typeof order.userId === "string" ? order.userId : "");
+
+      const customerName =
+        populatedUser?.username ||
+        populatedUser?.name ||
+        order.shippingAddress?.fullName ||
+        "Customer";
+
+      if (customerEmail) {
+        const emailSent = await sendOrderStatusEmail(
+          customerEmail,
+          customerName,
+          order,
+          requestedStatus,
+        );
+
+        if (!emailSent) {
+          console.error(
+            `Order ${order._id} status updated, but email could not be sent`,
+          );
+        }
+      } else {
+        console.warn(
+          `Order ${order._id} status updated, but customer email was unavailable`,
+        );
+      }
     } catch (emailError) {
-      console.error("Order status updated but email failed:", emailError);
+      console.error(
+        "Order status updated successfully, but email failed:",
+        emailError,
+      );
     }
 
     res.status(200).json({
-      message: "Order status updated successfully",
-
-      order: updatedOrder,
+      message: `Order status changed from ${previousStatus} to ${requestedStatus}`,
+      previousStatus,
+      currentStatus: requestedStatus,
+      allowedNextStatuses:
+        allowedOrderStatusTransitions[requestedStatus] || [],
+      order,
     });
-  } catch (error) {
-    console.error(error);
+  } catch (error: any) {
+    console.error("Change order status error:", error);
+
+    if (error?.name === "CastError") {
+      res.status(400).json({
+        message: "Invalid order ID",
+      });
+
+      return;
+    }
 
     res.status(500).json({
       message: "Failed to update order status",
