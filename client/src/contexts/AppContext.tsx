@@ -96,17 +96,23 @@ export interface Review {
   createdAt: string;
 }
 
-interface Coupon {
+export interface Coupon {
   _id: string;
   code: string;
-  discountType: "percentage" | "fixed";
-  discountValue: number;
+  discountPercentage?: number;
   minOrderAmount: number;
   maxDiscount?: number;
   usageLimit: number;
   usedCount: number;
   expiryDate: string;
   isActive: boolean;
+  couponType?: "GENERAL" | "WELCOME";
+  applicableCategories?: string[];
+}
+
+export interface CouponRequestItem {
+  productId: string;
+  quantity: number;
 }
 
 export interface ProductQuestion {
@@ -264,7 +270,6 @@ interface AppContextType {
     shippingAddress: any,
     paymentMethod: string,
     couponCode?: string,
-    discountAmount?: number,
   ) => Promise<void>;
 
   // Review Functions
@@ -275,6 +280,12 @@ interface AppContextType {
     rating: number,
     comment: string,
   ) => Promise<void>;
+
+  updateReview: (
+    reviewId: string,
+    rating: number,
+    comment: string,
+  ) => Promise<Review | null>;
 
   fetchProductQuestions: (productId: string) => Promise<void>;
 
@@ -366,7 +377,16 @@ interface AppContextType {
 
   deleteCoupon: (couponId: string) => Promise<any>;
 
-  validateCoupon: (code: string, subtotal: number) => Promise<any>;
+  validateCoupon: (
+    code: string,
+    subtotal: number,
+    items: CouponRequestItem[],
+  ) => Promise<any>;
+
+  getEligibleCoupons: (
+    subtotal: number,
+    items: CouponRequestItem[],
+  ) => Promise<any[]>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -777,20 +797,102 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     [fetchCoupons],
   );
 
-  const validateCoupon = useCallback(async (code: string, subtotal: number) => {
-    try {
-      const response = await api(`/api/coupons/validate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, subtotal }),
-      });
-      return await response.json();
-      notify.success("Coupon validated successfully!");
-    } catch (error) {
-      console.error(error);
-      notify.error("Failed to validate coupon.");
+  const validateCoupon = useCallback(
+  async (
+    code: string,
+    subtotal: number,
+    items: CouponRequestItem[],
+  ) => {
+    if (!user?.email) {
+      return {
+        success: false,
+        message: "Please login to apply a coupon",
+      };
     }
-  }, []);
+
+    try {
+      const response = await api("/api/coupons/validate", {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          code: code.trim().toUpperCase(),
+
+          subtotal,
+
+          email: user.email,
+
+          items,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: data.message || "Failed to validate coupon",
+        };
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Validate coupon error:", error);
+
+      return {
+        success: false,
+        message: "Failed to validate coupon",
+      };
+    }
+  },
+  [user?.email],
+);
+
+
+const getEligibleCoupons = useCallback(
+  async (
+    subtotal: number,
+    items: CouponRequestItem[],
+  ): Promise<any[]> => {
+    if (!user?.email || items.length === 0) {
+      return [];
+    }
+
+    try {
+      const response = await api("/api/coupons/eligible", {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+        },
+
+        body: JSON.stringify({
+          subtotal,
+
+          email: user.email,
+
+          items,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to fetch eligible coupons");
+      }
+
+      return Array.isArray(data.coupons) ? data.coupons : [];
+    } catch (error) {
+      console.error("Eligible coupons error:", error);
+
+      return [];
+    }
+  },
+  [user?.email],
+);
 
   // ========== AUTH FUNCTIONS ==========
 
@@ -1818,7 +1920,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       shippingAddress: any,
       paymentMethod: string,
       couponCode: string = "",
-      couponDiscount: number = 0,
     ) => {
       if (!user?.email) {
         notify.error("Please login to place an order");
@@ -1828,41 +1929,44 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
 
       try {
-
         const orderItems = items.map((item: any) => ({
           productId: item.productId?._id || item.productId,
+
           name: item.name || item.productId?.name || "Product",
+
           images:
             Array.isArray(item.images) && item.images.length > 0
               ? item.images
               : Array.isArray(item.productId?.images)
                 ? item.productId.images
                 : [],
+
           price: Number(item.price ?? item.productId?.price ?? 0),
+
           quantity: Number(item.quantity ?? 1),
         }));
 
-        const subtotal = orderItems.reduce(
-          (sum: number, item: any) => sum + item.price * item.quantity,
-          0,
-        );
-
-        const totalAmount = subtotal - couponDiscount;
+        if (orderItems.length === 0) {
+          throw new Error("No items available to place order");
+        }
 
         const response = await api("/api/orders/order", {
           method: "POST",
+
           headers: {
             "Content-Type": "application/json",
           },
+
           body: JSON.stringify({
             email: user.email,
+
             items: orderItems,
+
             shippingAddress,
+
             paymentMethod: paymentMethod.toLowerCase(),
-            subtotal,
-            couponCode,
-            couponDiscount,
-            totalAmount,
+
+            couponCode: couponCode.trim().toUpperCase(),
           }),
         });
 
@@ -1880,6 +1984,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         notify.success("Order placed successfully!");
       } catch (error: any) {
         notify.error(error.message || "Failed to create order");
+
         throw error;
       } finally {
         setLoading(false);
@@ -1900,6 +2005,91 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       setReviews([]);
     }
   }, []);
+
+  const updateReview = useCallback(
+    async (
+      reviewId: string,
+      rating: number,
+      comment: string,
+    ): Promise<Review | null> => {
+      if (!user?.email) {
+        notify.error("Please login to update your review");
+        return null;
+      }
+
+      if (!accessToken) {
+        notify.error("Your session is unavailable. Please login again.");
+        return null;
+      }
+
+      const cleanedComment = comment.trim();
+      const normalizedRating = Number(rating);
+
+      if (!reviewId) {
+        notify.error("Review ID is required");
+        return null;
+      }
+
+      if (
+        !Number.isFinite(normalizedRating) ||
+        normalizedRating < 1 ||
+        normalizedRating > 5
+      ) {
+        notify.error("Rating must be between 1 and 5");
+        return null;
+      }
+
+      if (!cleanedComment) {
+        notify.error("Review comment is required");
+        return null;
+      }
+
+      setLoading(true);
+
+      try {
+        const response = await api(`/api/reviews/${reviewId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            userEmail: user.email,
+            rating: normalizedRating,
+            comment: cleanedComment,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to update review");
+        }
+
+        const updatedReview: Review | undefined = data.review;
+
+        if (!updatedReview) {
+          throw new Error("Updated review was not returned by the server");
+        }
+
+        setReviews((previousReviews) =>
+          previousReviews.map((review) =>
+            review._id === reviewId ? updatedReview : review,
+          ),
+        );
+
+        notify.success(data.message || "Review updated successfully!");
+
+        return updatedReview;
+      } catch (error: any) {
+        notify.error(error.message || "Failed to update review");
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [user?.email, accessToken, notify],
+  );
 
   const submitReview = useCallback(
     async (productId: string, rating: number, comment: string) => {
@@ -2801,6 +2991,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     reviews,
     fetchProductReviews,
     submitReview,
+    updateReview,
     submitContact,
     productQuestions,
     fetchProductQuestions,
@@ -2843,6 +3034,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     updateCoupon,
     deleteCoupon,
     validateCoupon,
+    getEligibleCoupons,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

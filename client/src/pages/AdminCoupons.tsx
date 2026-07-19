@@ -1,22 +1,13 @@
 import { useMemo, useState } from "react";
 import { Search, Grid3x3, List, TicketPercent } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useApp } from "@/contexts/AppContext";
+import { useApp, type Coupon } from "@/contexts/AppContext";
 import Swal from "sweetalert2";
-
-interface Coupon {
-  _id: string;
-  code: string;
-  discountPercentage?: number;
-  minOrderAmount: number;
-  maxDiscount?: number;
-  usageLimit: number;
-  usedCount: number;
-  expiryDate: string;
-  isActive: boolean;
-}
+import { PRODUCT_CATEGORIES } from "@/constants/productCategories";
 
 type ViewMode = "card" | "table";
+
+// const PRODUCT_CATEGORIES = ["gpu", "ram", "ssd", "monitor", "laptop"];
 
 export default function AdminCoupons() {
   const { coupons, fetchCoupons, updateCoupon, deleteCoupon, createCoupon } =
@@ -50,123 +41,390 @@ export default function AdminCoupons() {
 
     const result = await Swal.fire({
       title: "Create Coupon",
-      width: isMobile ? "95%" : "540px",
-      padding: isMobile ? "1rem" : "1.5rem",
+
+      width: isMobile ? "94%" : "500px",
+
+      padding: isMobile ? "0.9rem" : "1.1rem",
+
       customClass: {
         popup: "rounded-3xl",
         title: "text-xl font-bold",
+        confirmButton: "rounded-xl px-5 py-2.5",
+        cancelButton: "rounded-xl px-5 py-2.5",
       },
 
       html: `
-      <div style="
-        display:flex;
-        flex-direction:column;
-        gap:14px;
-        text-align:left;
-        width:100%;
-      ">
-
+      <div
+        style="
+          display:flex;
+          flex-direction:column;
+          gap:11px;
+          text-align:left;
+          width:100%;
+          max-height:${isMobile ? "62vh" : "64vh"};
+          overflow-y:auto;
+          overflow-x:hidden;
+          padding:2px 5px 2px 1px;
+          box-sizing:border-box;
+        "
+      >
         <div>
-          <label style="font-size:13px;font-weight:600;color:#374151;">
+          <label
+            for="code"
+            style="
+              display:block;
+              margin-bottom:5px;
+              font-size:12px;
+              font-weight:700;
+              color:#334155;
+            "
+          >
             Coupon Code
           </label>
 
           <input
             id="code"
+            type="text"
             class="swal2-input"
             placeholder="SAVE10"
+            autocomplete="off"
             style="
               width:100%;
-              margin:6px 0 0;
+              height:40px;
+              margin:0;
+              padding:0 12px;
               box-sizing:border-box;
-              height:46px;
-              border-radius:12px;
+              border-radius:11px;
+              font-size:14px;
+              text-transform:uppercase;
             "
           />
         </div>
 
         <div>
-          <label style="font-size:13px;font-weight:600;color:#374151;">
-            Discount Percentage
+          <label
+            for="couponType"
+            style="
+              display:block;
+              margin-bottom:5px;
+              font-size:12px;
+              font-weight:700;
+              color:#334155;
+            "
+          >
+            Coupon Type
           </label>
 
-          <input
-            id="discountPercentage"
-            type="number"
-            class="swal2-input"
-            placeholder="10"
+          <select
+            id="couponType"
+            class="swal2-select"
             style="
               width:100%;
-              margin:6px 0 0;
+              height:40px;
+              margin:0;
+              padding:0 12px;
               box-sizing:border-box;
-              height:46px;
-              border-radius:12px;
+              border:1px solid #d1d5db;
+              border-radius:11px;
+              background:#ffffff;
+              color:#334155;
+              font-size:14px;
+              outline:none;
             "
-          />
+          >
+            <option value="GENERAL">General Coupon</option>
+            <option value="WELCOME">Welcome Coupon</option>
+          </select>
+        </div>
+
+        <div id="categoriesSection">
+          <div
+            style="
+              display:flex;
+              align-items:center;
+              justify-content:space-between;
+              gap:10px;
+              margin-bottom:7px;
+            "
+          >
+            <label
+              style="
+                font-size:12px;
+                font-weight:700;
+                color:#334155;
+              "
+            >
+              Applicable Categories
+            </label>
+
+            <span
+              id="categoryHint"
+              style="
+                font-size:10px;
+                font-weight:600;
+                color:#64748b;
+              "
+            >
+              Empty means all products
+            </span>
+          </div>
+
+          <div
+            id="categoryChips"
+            style="
+              display:flex;
+              flex-wrap:wrap;
+              gap:7px;
+            "
+          >
+            ${PRODUCT_CATEGORIES.map(
+              (category) => `
+                <label
+                  class="coupon-category-chip"
+                  data-category="${category}"
+                  style="
+                    display:inline-flex;
+                    align-items:center;
+                    justify-content:center;
+                    min-height:32px;
+                    padding:6px 11px;
+                    border:1px solid #dbe3ee;
+                    border-radius:999px;
+                    background:#f8fafc;
+                    color:#475569;
+                    font-size:12px;
+                    font-weight:700;
+                    cursor:pointer;
+                    user-select:none;
+                    transition:all 0.2s ease;
+                  "
+                >
+                  <input
+                    type="checkbox"
+                    class="coupon-category-checkbox"
+                    value="${category}"
+                    style="display:none;"
+                  />
+
+                  ${category.toUpperCase()}
+                </label>
+              `,
+            ).join("")}
+          </div>
+
+          <p
+            id="welcomeCouponNotice"
+            style="
+              display:none;
+              margin:6px 0 0;
+              font-size:11px;
+              color:#7c3aed;
+              font-weight:600;
+            "
+          >
+            Welcome coupons apply to the customer's first eligible order.
+          </p>
+        </div>
+
+        <div
+          style="
+            display:grid;
+            grid-template-columns:${isMobile ? "1fr" : "1fr 1fr"};
+            gap:10px;
+          "
+        >
+          <div>
+            <label
+              for="discountPercentage"
+              style="
+                display:block;
+                margin-bottom:5px;
+                font-size:12px;
+                font-weight:700;
+                color:#334155;
+              "
+            >
+              Discount Percentage
+            </label>
+
+            <div style="position:relative;">
+              <input
+                id="discountPercentage"
+                type="number"
+                min="1"
+                max="100"
+                class="swal2-input"
+                placeholder="10"
+                style="
+                  width:100%;
+                  height:40px;
+                  margin:0;
+                  padding:0 36px 0 12px;
+                  box-sizing:border-box;
+                  border-radius:11px;
+                  font-size:14px;
+                "
+              />
+
+              <span
+                style="
+                  position:absolute;
+                  right:13px;
+                  top:50%;
+                  transform:translateY(-50%);
+                  color:#64748b;
+                  font-size:13px;
+                  font-weight:700;
+                  pointer-events:none;
+                "
+              >
+                %
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <label
+              for="minOrderAmount"
+              style="
+                display:block;
+                margin-bottom:5px;
+                font-size:12px;
+                font-weight:700;
+                color:#334155;
+              "
+            >
+              Minimum Order
+            </label>
+
+            <div style="position:relative;">
+              <span
+                style="
+                  position:absolute;
+                  left:13px;
+                  top:50%;
+                  transform:translateY(-50%);
+                  color:#64748b;
+                  font-size:13px;
+                  font-weight:700;
+                  pointer-events:none;
+                "
+              >
+                ₹
+              </span>
+
+              <input
+                id="minOrderAmount"
+                type="number"
+                min="0"
+                class="swal2-input"
+                placeholder="1000"
+                style="
+                  width:100%;
+                  height:40px;
+                  margin:0;
+                  padding:0 12px 0 28px;
+                  box-sizing:border-box;
+                  border-radius:11px;
+                  font-size:14px;
+                "
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              for="maxDiscount"
+              style="
+                display:block;
+                margin-bottom:5px;
+                font-size:12px;
+                font-weight:700;
+                color:#334155;
+              "
+            >
+              Maximum Discount
+            </label>
+
+            <div style="position:relative;">
+              <span
+                style="
+                  position:absolute;
+                  left:13px;
+                  top:50%;
+                  transform:translateY(-50%);
+                  color:#64748b;
+                  font-size:13px;
+                  font-weight:700;
+                  pointer-events:none;
+                "
+              >
+                ₹
+              </span>
+
+              <input
+                id="maxDiscount"
+                type="number"
+                min="0"
+                class="swal2-input"
+                placeholder="500"
+                style="
+                  width:100%;
+                  height:40px;
+                  margin:0;
+                  padding:0 12px 0 28px;
+                  box-sizing:border-box;
+                  border-radius:11px;
+                  font-size:14px;
+                "
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              for="usageLimit"
+              style="
+                display:block;
+                margin-bottom:5px;
+                font-size:12px;
+                font-weight:700;
+                color:#334155;
+              "
+            >
+              Usage Limit
+            </label>
+
+            <input
+              id="usageLimit"
+              type="number"
+              min="1"
+              class="swal2-input"
+              placeholder="100"
+              style="
+                width:100%;
+                height:40px;
+                margin:0;
+                padding:0 12px;
+                box-sizing:border-box;
+                border-radius:11px;
+                font-size:14px;
+              "
+            />
+          </div>
         </div>
 
         <div>
-          <label style="font-size:13px;font-weight:600;color:#374151;">
-            Minimum Order Amount
-          </label>
-
-          <input
-            id="minOrderAmount"
-            type="number"
-            class="swal2-input"
-            placeholder="1000"
+          <label
+            for="expiryDate"
             style="
-              width:100%;
-              margin:6px 0 0;
-              box-sizing:border-box;
-              height:46px;
-              border-radius:12px;
+              display:block;
+              margin-bottom:5px;
+              font-size:12px;
+              font-weight:700;
+              color:#334155;
             "
-          />
-        </div>
-
-        <div>
-          <label style="font-size:13px;font-weight:600;color:#374151;">
-            Maximum Discount
-          </label>
-
-          <input
-            id="maxDiscount"
-            type="number"
-            class="swal2-input"
-            placeholder="500"
-            style="
-              width:100%;
-              margin:6px 0 0;
-              box-sizing:border-box;
-              height:46px;
-              border-radius:12px;
-            "
-          />
-        </div>
-
-        <div>
-          <label style="font-size:13px;font-weight:600;color:#374151;">
-            Usage Limit
-          </label>
-
-          <input
-            id="usageLimit"
-            type="number"
-            class="swal2-input"
-            placeholder="100"
-            style="
-              width:100%;
-              margin:6px 0 0;
-              box-sizing:border-box;
-              height:46px;
-              border-radius:12px;
-            "
-          />
-        </div>
-
-        <div>
-          <label style="font-size:13px;font-weight:600;color:#374151;">
+          >
             Expiry Date
           </label>
 
@@ -176,74 +434,284 @@ export default function AdminCoupons() {
             class="swal2-input"
             style="
               width:100%;
-              margin:6px 0 0;
+              height:40px;
+              margin:0;
+              padding:0 12px;
               box-sizing:border-box;
-              height:46px;
-              border-radius:12px;
+              border-radius:11px;
+              font-size:14px;
             "
           />
         </div>
-
       </div>
     `,
 
       showCancelButton: true,
+
       confirmButtonText: "Create Coupon",
+
       cancelButtonText: "Cancel",
 
+      focusConfirm: false,
+
       didOpen: () => {
-        if (isMobile) {
-          const actions = document.querySelector(".swal2-actions");
+        const popup = Swal.getPopup();
 
-          if (actions instanceof HTMLElement) {
-            actions.style.flexDirection = "column";
-            actions.style.width = "100%";
-            actions.style.gap = "10px";
+        const couponTypeSelect = popup?.querySelector(
+          "#couponType",
+        ) as HTMLSelectElement | null;
 
-            actions.querySelectorAll("button").forEach((btn) => {
-              (btn as HTMLElement).style.width = "100%";
-            });
+        const categoriesSection = popup?.querySelector(
+          "#categoriesSection",
+        ) as HTMLElement | null;
+
+        const categoryHint = popup?.querySelector(
+          "#categoryHint",
+        ) as HTMLElement | null;
+
+        const welcomeCouponNotice = popup?.querySelector(
+          "#welcomeCouponNotice",
+        ) as HTMLElement | null;
+
+        const categoryChips = Array.from(
+          popup?.querySelectorAll(".coupon-category-chip") ?? [],
+        ) as HTMLLabelElement[];
+
+        const categoryCheckboxes = Array.from(
+          popup?.querySelectorAll(".coupon-category-checkbox") ?? [],
+        ) as HTMLInputElement[];
+
+        const updateCategoryChipStyle = (
+          chip: HTMLLabelElement,
+          checked: boolean,
+        ) => {
+          chip.style.background = checked ? "#0f172a" : "#f8fafc";
+          chip.style.color = checked ? "#ffffff" : "#475569";
+          chip.style.borderColor = checked ? "#0f172a" : "#dbe3ee";
+          chip.style.boxShadow = checked
+            ? "0 4px 12px rgba(15, 23, 42, 0.16)"
+            : "none";
+        };
+
+        categoryChips.forEach((chip) => {
+          const checkbox = chip.querySelector(
+            ".coupon-category-checkbox",
+          ) as HTMLInputElement | null;
+
+          if (!checkbox) return;
+
+          updateCategoryChipStyle(chip, checkbox.checked);
+
+          checkbox.addEventListener("change", () => {
+            updateCategoryChipStyle(chip, checkbox.checked);
+          });
+        });
+
+        const handleCouponTypeChange = () => {
+          const isWelcome = couponTypeSelect?.value === "WELCOME";
+
+          categoryCheckboxes.forEach((checkbox) => {
+            checkbox.checked = false;
+            checkbox.disabled = isWelcome;
+
+            const chip = checkbox.closest(
+              ".coupon-category-chip",
+            ) as HTMLLabelElement | null;
+
+            if (!chip) return;
+
+            updateCategoryChipStyle(chip, false);
+
+            chip.style.opacity = isWelcome ? "0.45" : "1";
+            chip.style.cursor = isWelcome ? "not-allowed" : "pointer";
+            chip.style.pointerEvents = isWelcome ? "none" : "auto";
+          });
+
+          if (categoriesSection) {
+            categoriesSection.style.opacity = isWelcome ? "0.8" : "1";
           }
+
+          if (categoryHint) {
+            categoryHint.style.display = isWelcome ? "none" : "inline";
+          }
+
+          if (welcomeCouponNotice) {
+            welcomeCouponNotice.style.display = isWelcome ? "block" : "none";
+          }
+        };
+
+        couponTypeSelect?.addEventListener("change", handleCouponTypeChange);
+
+        handleCouponTypeChange();
+
+        const actions = popup?.querySelector(
+          ".swal2-actions",
+        ) as HTMLElement | null;
+
+        if (actions) {
+          actions.style.width = "100%";
+          actions.style.margin = "14px 0 0";
+          actions.style.gap = "9px";
+
+          if (isMobile) {
+            actions.style.flexDirection = "column-reverse";
+          }
+
+          actions.querySelectorAll("button").forEach((button) => {
+            const element = button as HTMLElement;
+
+            element.style.minHeight = "40px";
+
+            if (isMobile) {
+              element.style.width = "100%";
+              element.style.margin = "0";
+            }
+          });
         }
       },
 
-      preConfirm: () => ({
-        code: (
-          document.getElementById("code") as HTMLInputElement
-        ).value.toUpperCase(),
+      preConfirm: () => {
+        const popup = Swal.getPopup();
 
-        discountPercentage: Number(
-          (document.getElementById("discountPercentage") as HTMLInputElement)
-            .value,
-        ),
+        const code = (
+          popup?.querySelector("#code") as HTMLInputElement | null
+        )?.value
+          .trim()
+          .toUpperCase();
 
-        minOrderAmount: Number(
-          (document.getElementById("minOrderAmount") as HTMLInputElement).value,
-        ),
+        const couponType = (
+          popup?.querySelector("#couponType") as HTMLSelectElement | null
+        )?.value as "GENERAL" | "WELCOME";
 
-        maxDiscount: Number(
-          (document.getElementById("maxDiscount") as HTMLInputElement).value,
-        ),
+        const discountPercentage = Number(
+          (
+            popup?.querySelector(
+              "#discountPercentage",
+            ) as HTMLInputElement | null
+          )?.value,
+        );
 
-        usageLimit: Number(
-          (document.getElementById("usageLimit") as HTMLInputElement).value,
-        ),
+        const minOrderAmount = Number(
+          (popup?.querySelector("#minOrderAmount") as HTMLInputElement | null)
+            ?.value,
+        );
 
-        expiryDate: (document.getElementById("expiryDate") as HTMLInputElement)
-          .value,
-      }),
+        const maxDiscountInput = (
+          popup?.querySelector("#maxDiscount") as HTMLInputElement | null
+        )?.value;
+
+        const maxDiscount = maxDiscountInput
+          ? Number(maxDiscountInput)
+          : undefined;
+
+        const usageLimit = Number(
+          (popup?.querySelector("#usageLimit") as HTMLInputElement | null)
+            ?.value,
+        );
+
+        const expiryDate = (
+          popup?.querySelector("#expiryDate") as HTMLInputElement | null
+        )?.value;
+
+        const applicableCategories =
+          couponType === "WELCOME"
+            ? []
+            : Array.from(
+                popup?.querySelectorAll(".coupon-category-checkbox:checked") ??
+                  [],
+              ).map((checkbox) => (checkbox as HTMLInputElement).value);
+
+        if (!code) {
+          Swal.showValidationMessage("Please enter a coupon code.");
+          return false;
+        }
+
+        if (!/^[A-Z0-9_-]+$/.test(code)) {
+          Swal.showValidationMessage(
+            "Coupon code can only contain letters, numbers, hyphens and underscores.",
+          );
+
+          return false;
+        }
+
+        if (
+          !Number.isFinite(discountPercentage) ||
+          discountPercentage <= 0 ||
+          discountPercentage > 100
+        ) {
+          Swal.showValidationMessage(
+            "Discount percentage must be between 1 and 100.",
+          );
+
+          return false;
+        }
+
+        if (!Number.isFinite(minOrderAmount) || minOrderAmount < 0) {
+          Swal.showValidationMessage(
+            "Minimum order amount cannot be negative.",
+          );
+
+          return false;
+        }
+
+        if (
+          maxDiscount !== undefined &&
+          (!Number.isFinite(maxDiscount) || maxDiscount <= 0)
+        ) {
+          Swal.showValidationMessage(
+            "Maximum discount must be greater than zero.",
+          );
+
+          return false;
+        }
+
+        if (!Number.isFinite(usageLimit) || usageLimit < 1) {
+          Swal.showValidationMessage("Usage limit must be at least 1.");
+
+          return false;
+        }
+
+        if (!expiryDate) {
+          Swal.showValidationMessage("Please choose an expiry date.");
+          return false;
+        }
+
+        const expiry = new Date(`${expiryDate}T23:59:59.999`);
+
+        if (expiry.getTime() <= Date.now()) {
+          Swal.showValidationMessage("Expiry date must be in the future.");
+
+          return false;
+        }
+
+        return {
+          code,
+          couponType,
+          applicableCategories,
+          discountPercentage,
+          minOrderAmount,
+          maxDiscount,
+          usageLimit,
+          expiryDate,
+          isActive: true,
+        };
+      },
     });
 
-    if (!result.isConfirmed) return;
+    if (!result.isConfirmed || !result.value) return;
 
     try {
+      setLoading(true);
+
       const response = await createCoupon(result.value);
 
       if (response?.success) {
         await fetchCoupons();
       }
     } catch (error) {
-      console.error(error);
+      console.error("Create coupon error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -271,148 +739,706 @@ export default function AdminCoupons() {
   };
 
   const editCoupon = async (coupon: Coupon) => {
+    const isMobile = window.innerWidth < 640;
+
+    const selectedCategories = Array.isArray(coupon.applicableCategories)
+      ? coupon.applicableCategories
+      : [];
+
     const result = await Swal.fire({
       title: "Edit Coupon",
-      width: window.innerWidth < 640 ? "95%" : "500px",
-      padding: "1.2rem",
+
+      width: isMobile ? "94%" : "500px",
+
+      padding: isMobile ? "0.9rem" : "1.1rem",
+
       customClass: {
         popup: "rounded-3xl",
-        title: "text-xl",
+        title: "text-xl font-bold",
+        confirmButton: "rounded-xl px-5 py-2.5",
+        cancelButton: "rounded-xl px-5 py-2.5",
       },
 
       html: `
-      <div style="
-        text-align:left;
-        display:flex;
-        flex-direction:column;
-        gap:12px;
-        width:100%;
-        overflow-x:hidden;
-      ">
-        ${[
-          ["code", "Coupon Code", coupon.code, "text"],
-          [
-            "discountPercentage",
-            "Discount Percentage",
-            coupon.discountPercentage ?? "",
-            "number",
-          ],
-          [
-            "minOrderAmount",
-            "Minimum Order Amount",
-            coupon.minOrderAmount,
-            "number",
-          ],
-          [
-            "maxDiscount",
-            "Maximum Discount",
-            coupon.maxDiscount || "",
-            "number",
-          ],
-          ["usageLimit", "Usage Limit", coupon.usageLimit, "number"],
-          [
-            "expiryDate",
-            "Expiry Date",
-            new Date(coupon.expiryDate).toISOString().split("T")[0],
-            "date",
-          ],
-        ]
-          .map(
-            ([id, label, value, type]) => `
-              <div>
-                <label style="
-                  display:block;
-                  font-size:13px;
-                  font-weight:600;
-                  margin-bottom:2px;
-                  color:#374151;
-                ">
-                  ${label}
-                </label>
+      <div
+        style="
+          display:flex;
+          flex-direction:column;
+          gap:11px;
+          text-align:left;
+          width:100%;
+          max-height:${isMobile ? "62vh" : "64vh"};
+          overflow-y:auto;
+          overflow-x:hidden;
+          padding:2px 5px 2px 1px;
+          box-sizing:border-box;
+        "
+      >
+        <div>
+          <label
+            for="code"
+            style="
+              display:block;
+              margin-bottom:5px;
+              font-size:12px;
+              font-weight:700;
+              color:#334155;
+            "
+          >
+            Coupon Code
+          </label>
 
-                <input
-                  id="${id}"
-                  type="${type}"
-                  class="swal2-input"
-                  value="${value}"
+          <input
+            id="code"
+            type="text"
+            class="swal2-input"
+            value="${coupon.code}"
+            autocomplete="off"
+            style="
+              width:100%;
+              height:40px;
+              margin:0;
+              padding:0 12px;
+              box-sizing:border-box;
+              border-radius:11px;
+              font-size:14px;
+              text-transform:uppercase;
+            "
+          />
+        </div>
+
+        <div>
+          <label
+            for="couponType"
+            style="
+              display:block;
+              margin-bottom:5px;
+              font-size:12px;
+              font-weight:700;
+              color:#334155;
+            "
+          >
+            Coupon Type
+          </label>
+
+          <select
+            id="couponType"
+            class="swal2-select"
+            style="
+              width:100%;
+              height:40px;
+              margin:0;
+              padding:0 12px;
+              box-sizing:border-box;
+              border:1px solid #d1d5db;
+              border-radius:11px;
+              background:#ffffff;
+              color:#334155;
+              font-size:14px;
+              outline:none;
+            "
+          >
+            <option
+              value="GENERAL"
+              ${(coupon.couponType ?? "GENERAL") === "GENERAL" ? "selected" : ""}
+            >
+              General Coupon
+            </option>
+
+            <option
+              value="WELCOME"
+              ${coupon.couponType === "WELCOME" ? "selected" : ""}
+            >
+              Welcome Coupon
+            </option>
+          </select>
+        </div>
+
+        <div id="categoriesSection">
+          <div
+            style="
+              display:flex;
+              align-items:center;
+              justify-content:space-between;
+              gap:10px;
+              margin-bottom:7px;
+            "
+          >
+            <label
+              style="
+                font-size:12px;
+                font-weight:700;
+                color:#334155;
+              "
+            >
+              Applicable Categories
+            </label>
+
+            <span
+              id="categoryHint"
+              style="
+                font-size:10px;
+                font-weight:600;
+                color:#64748b;
+              "
+            >
+              Empty means all products
+            </span>
+          </div>
+
+          <div
+            id="categoryChips"
+            style="
+              display:flex;
+              flex-wrap:wrap;
+              gap:7px;
+            "
+          >
+            ${PRODUCT_CATEGORIES.map((category) => {
+              const checked = selectedCategories.includes(category);
+
+              return `
+                <label
+                  class="coupon-category-chip"
+                  data-category="${category}"
                   style="
-                    width:100%;
-                    margin:0;
-                    box-sizing:border-box;
-                    height:44px;
-                    border-radius:12px;
-                    font-size:14px;
+                    display:inline-flex;
+                    align-items:center;
+                    justify-content:center;
+                    min-height:32px;
+                    padding:6px 11px;
+                    border:1px solid ${checked ? "#0f172a" : "#dbe3ee"};
+                    border-radius:999px;
+                    background:${checked ? "#0f172a" : "#f8fafc"};
+                    color:${checked ? "#ffffff" : "#475569"};
+                    font-size:12px;
+                    font-weight:700;
+                    cursor:pointer;
+                    user-select:none;
+                    transition:all 0.2s ease;
+                    box-shadow:${
+                      checked ? "0 4px 12px rgba(15, 23, 42, 0.16)" : "none"
+                    };
                   "
-                />
-              </div>
-            `,
-          )
-          .join("")}
+                >
+                  <input
+                    type="checkbox"
+                    class="coupon-category-checkbox"
+                    value="${category}"
+                    ${checked ? "checked" : ""}
+                    style="display:none;"
+                  />
+
+                  ${category.toUpperCase()}
+                </label>
+              `;
+            }).join("")}
+          </div>
+
+          <p
+            id="welcomeCouponNotice"
+            style="
+              display:none;
+              margin:6px 0 0;
+              font-size:11px;
+              color:#7c3aed;
+              font-weight:600;
+            "
+          >
+            Welcome coupons apply to the customer's first eligible order.
+          </p>
+        </div>
+
+        <div
+          style="
+            display:grid;
+            grid-template-columns:${isMobile ? "1fr" : "1fr 1fr"};
+            gap:10px;
+          "
+        >
+          <div>
+            <label
+              for="discountPercentage"
+              style="
+                display:block;
+                margin-bottom:5px;
+                font-size:12px;
+                font-weight:700;
+                color:#334155;
+              "
+            >
+              Discount Percentage
+            </label>
+
+            <div style="position:relative;">
+              <input
+                id="discountPercentage"
+                type="number"
+                min="1"
+                max="100"
+                class="swal2-input"
+                value="${coupon.discountPercentage ?? ""}"
+                style="
+                  width:100%;
+                  height:40px;
+                  margin:0;
+                  padding:0 36px 0 12px;
+                  box-sizing:border-box;
+                  border-radius:11px;
+                  font-size:14px;
+                "
+              />
+
+              <span
+                style="
+                  position:absolute;
+                  right:13px;
+                  top:50%;
+                  transform:translateY(-50%);
+                  color:#64748b;
+                  font-size:13px;
+                  font-weight:700;
+                  pointer-events:none;
+                "
+              >
+                %
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <label
+              for="minOrderAmount"
+              style="
+                display:block;
+                margin-bottom:5px;
+                font-size:12px;
+                font-weight:700;
+                color:#334155;
+              "
+            >
+              Minimum Order
+            </label>
+
+            <div style="position:relative;">
+              <span
+                style="
+                  position:absolute;
+                  left:13px;
+                  top:50%;
+                  transform:translateY(-50%);
+                  color:#64748b;
+                  font-size:13px;
+                  font-weight:700;
+                  pointer-events:none;
+                "
+              >
+                ₹
+              </span>
+
+              <input
+                id="minOrderAmount"
+                type="number"
+                min="0"
+                class="swal2-input"
+                value="${coupon.minOrderAmount}"
+                style="
+                  width:100%;
+                  height:40px;
+                  margin:0;
+                  padding:0 12px 0 28px;
+                  box-sizing:border-box;
+                  border-radius:11px;
+                  font-size:14px;
+                "
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              for="maxDiscount"
+              style="
+                display:block;
+                margin-bottom:5px;
+                font-size:12px;
+                font-weight:700;
+                color:#334155;
+              "
+            >
+              Maximum Discount
+            </label>
+
+            <div style="position:relative;">
+              <span
+                style="
+                  position:absolute;
+                  left:13px;
+                  top:50%;
+                  transform:translateY(-50%);
+                  color:#64748b;
+                  font-size:13px;
+                  font-weight:700;
+                  pointer-events:none;
+                "
+              >
+                ₹
+              </span>
+
+              <input
+                id="maxDiscount"
+                type="number"
+                min="0"
+                class="swal2-input"
+                value="${coupon.maxDiscount ?? ""}"
+                placeholder="Optional"
+                style="
+                  width:100%;
+                  height:40px;
+                  margin:0;
+                  padding:0 12px 0 28px;
+                  box-sizing:border-box;
+                  border-radius:11px;
+                  font-size:14px;
+                "
+              />
+            </div>
+          </div>
+
+          <div>
+            <label
+              for="usageLimit"
+              style="
+                display:block;
+                margin-bottom:5px;
+                font-size:12px;
+                font-weight:700;
+                color:#334155;
+              "
+            >
+              Usage Limit
+            </label>
+
+            <input
+              id="usageLimit"
+              type="number"
+              min="1"
+              class="swal2-input"
+              value="${coupon.usageLimit}"
+              style="
+                width:100%;
+                height:40px;
+                margin:0;
+                padding:0 12px;
+                box-sizing:border-box;
+                border-radius:11px;
+                font-size:14px;
+              "
+            />
+          </div>
+        </div>
+
+        <div>
+          <label
+            for="expiryDate"
+            style="
+              display:block;
+              margin-bottom:5px;
+              font-size:12px;
+              font-weight:700;
+              color:#334155;
+            "
+          >
+            Expiry Date
+          </label>
+
+          <input
+            id="expiryDate"
+            type="date"
+            class="swal2-input"
+            value="${new Date(coupon.expiryDate).toISOString().split("T")[0]}"
+            style="
+              width:100%;
+              height:40px;
+              margin:0;
+              padding:0 12px;
+              box-sizing:border-box;
+              border-radius:11px;
+              font-size:14px;
+            "
+          />
+        </div>
       </div>
     `,
 
       showCancelButton: true,
+
       confirmButtonText: "Update Coupon",
+
       cancelButtonText: "Cancel",
 
+      focusConfirm: false,
+
       didOpen: () => {
-        if (window.innerWidth < 640) {
-          const actions = document.querySelector(".swal2-actions");
+        const popup = Swal.getPopup();
 
-          if (actions instanceof HTMLElement) {
-            actions.style.flexDirection = "column";
-            actions.style.width = "100%";
-            actions.style.gap = "10px";
+        const couponTypeSelect = popup?.querySelector(
+          "#couponType",
+        ) as HTMLSelectElement | null;
 
-            actions.querySelectorAll("button").forEach((btn) => {
-              (btn as HTMLElement).style.width = "100%";
-            });
+        const categoriesSection = popup?.querySelector(
+          "#categoriesSection",
+        ) as HTMLElement | null;
+
+        const categoryHint = popup?.querySelector(
+          "#categoryHint",
+        ) as HTMLElement | null;
+
+        const welcomeCouponNotice = popup?.querySelector(
+          "#welcomeCouponNotice",
+        ) as HTMLElement | null;
+
+        const categoryChips = Array.from(
+          popup?.querySelectorAll(".coupon-category-chip") ?? [],
+        ) as HTMLLabelElement[];
+
+        const categoryCheckboxes = Array.from(
+          popup?.querySelectorAll(".coupon-category-checkbox") ?? [],
+        ) as HTMLInputElement[];
+
+        const updateCategoryChipStyle = (
+          chip: HTMLLabelElement,
+          checked: boolean,
+        ) => {
+          chip.style.background = checked ? "#0f172a" : "#f8fafc";
+          chip.style.color = checked ? "#ffffff" : "#475569";
+          chip.style.borderColor = checked ? "#0f172a" : "#dbe3ee";
+
+          chip.style.boxShadow = checked
+            ? "0 4px 12px rgba(15, 23, 42, 0.16)"
+            : "none";
+        };
+
+        categoryChips.forEach((chip) => {
+          const checkbox = chip.querySelector(
+            ".coupon-category-checkbox",
+          ) as HTMLInputElement | null;
+
+          if (!checkbox) return;
+
+          updateCategoryChipStyle(chip, checkbox.checked);
+
+          checkbox.addEventListener("change", () => {
+            updateCategoryChipStyle(chip, checkbox.checked);
+          });
+        });
+
+        const handleCouponTypeChange = () => {
+          const isWelcome = couponTypeSelect?.value === "WELCOME";
+
+          categoryCheckboxes.forEach((checkbox) => {
+            checkbox.disabled = isWelcome;
+
+            const chip = checkbox.closest(
+              ".coupon-category-chip",
+            ) as HTMLLabelElement | null;
+
+            if (!chip) return;
+
+            chip.style.opacity = isWelcome ? "0.45" : "1";
+            chip.style.cursor = isWelcome ? "not-allowed" : "pointer";
+            chip.style.pointerEvents = isWelcome ? "none" : "auto";
+          });
+
+          if (categoriesSection) {
+            categoriesSection.style.opacity = isWelcome ? "0.8" : "1";
           }
+
+          if (categoryHint) {
+            categoryHint.style.display = isWelcome ? "none" : "inline";
+          }
+
+          if (welcomeCouponNotice) {
+            welcomeCouponNotice.style.display = isWelcome ? "block" : "none";
+          }
+        };
+
+        couponTypeSelect?.addEventListener("change", handleCouponTypeChange);
+
+        handleCouponTypeChange();
+
+        const actions = popup?.querySelector(
+          ".swal2-actions",
+        ) as HTMLElement | null;
+
+        if (actions) {
+          actions.style.width = "100%";
+          actions.style.margin = "14px 0 0";
+          actions.style.gap = "9px";
+
+          if (isMobile) {
+            actions.style.flexDirection = "column-reverse";
+          }
+
+          actions.querySelectorAll("button").forEach((button) => {
+            const element = button as HTMLElement;
+
+            element.style.minHeight = "40px";
+
+            if (isMobile) {
+              element.style.width = "100%";
+              element.style.margin = "0";
+            }
+          });
         }
       },
 
-      preConfirm: () => ({
-        code: (
-          document.getElementById("code") as HTMLInputElement
-        ).value.toUpperCase(),
+      preConfirm: () => {
+        const popup = Swal.getPopup();
 
-        discountPercentage: Number(
-          (document.getElementById("discountPercentage") as HTMLInputElement)
-            .value,
-        ),
+        const code = (
+          popup?.querySelector("#code") as HTMLInputElement | null
+        )?.value
+          .trim()
+          .toUpperCase();
 
-        minOrderAmount: Number(
-          (document.getElementById("minOrderAmount") as HTMLInputElement).value,
-        ),
+        const couponType = (
+          popup?.querySelector("#couponType") as HTMLSelectElement | null
+        )?.value as "GENERAL" | "WELCOME";
 
-        maxDiscount: Number(
-          (document.getElementById("maxDiscount") as HTMLInputElement).value,
-        ),
+        const discountPercentage = Number(
+          (
+            popup?.querySelector(
+              "#discountPercentage",
+            ) as HTMLInputElement | null
+          )?.value,
+        );
 
-        usageLimit: Number(
-          (document.getElementById("usageLimit") as HTMLInputElement).value,
-        ),
+        const minOrderAmount = Number(
+          (popup?.querySelector("#minOrderAmount") as HTMLInputElement | null)
+            ?.value,
+        );
 
-        expiryDate: (document.getElementById("expiryDate") as HTMLInputElement)
-          .value,
-      }),
+        const maxDiscountInput = (
+          popup?.querySelector("#maxDiscount") as HTMLInputElement | null
+        )?.value;
+
+        const maxDiscount = maxDiscountInput
+          ? Number(maxDiscountInput)
+          : undefined;
+
+        const usageLimit = Number(
+          (popup?.querySelector("#usageLimit") as HTMLInputElement | null)
+            ?.value,
+        );
+
+        const expiryDate = (
+          popup?.querySelector("#expiryDate") as HTMLInputElement | null
+        )?.value;
+
+        const applicableCategories =
+          couponType === "WELCOME"
+            ? []
+            : Array.from(
+                popup?.querySelectorAll(".coupon-category-checkbox:checked") ??
+                  [],
+              ).map((checkbox) => (checkbox as HTMLInputElement).value);
+
+        if (!code) {
+          Swal.showValidationMessage("Please enter a coupon code.");
+          return false;
+        }
+
+        if (!/^[A-Z0-9_-]+$/.test(code)) {
+          Swal.showValidationMessage(
+            "Coupon code can only contain letters, numbers, hyphens and underscores.",
+          );
+
+          return false;
+        }
+
+        if (
+          !Number.isFinite(discountPercentage) ||
+          discountPercentage <= 0 ||
+          discountPercentage > 100
+        ) {
+          Swal.showValidationMessage(
+            "Discount percentage must be between 1 and 100.",
+          );
+
+          return false;
+        }
+
+        if (!Number.isFinite(minOrderAmount) || minOrderAmount < 0) {
+          Swal.showValidationMessage(
+            "Minimum order amount cannot be negative.",
+          );
+
+          return false;
+        }
+
+        if (
+          maxDiscount !== undefined &&
+          (!Number.isFinite(maxDiscount) || maxDiscount <= 0)
+        ) {
+          Swal.showValidationMessage(
+            "Maximum discount must be greater than zero.",
+          );
+
+          return false;
+        }
+
+        if (!Number.isFinite(usageLimit) || usageLimit < 1) {
+          Swal.showValidationMessage("Usage limit must be at least 1.");
+
+          return false;
+        }
+
+        if (!expiryDate) {
+          Swal.showValidationMessage("Please choose an expiry date.");
+          return false;
+        }
+
+        const expiry = new Date(`${expiryDate}T23:59:59.999`);
+
+        if (expiry.getTime() <= Date.now()) {
+          Swal.showValidationMessage("Expiry date must be in the future.");
+
+          return false;
+        }
+
+        return {
+          code,
+          couponType,
+          applicableCategories,
+          discountPercentage,
+          minOrderAmount,
+          maxDiscount,
+          usageLimit,
+          expiryDate,
+        };
+      },
     });
 
-    if (!result.isConfirmed) return;
+    if (!result.isConfirmed || !result.value) return;
 
     try {
+      setLoading(true);
+
       const response = await updateCoupon(coupon._id, result.value);
 
       if (response?.success) {
         await fetchCoupons();
       }
     } catch (error) {
-      console.error(error);
+      console.error("Update coupon error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const filteredCoupons = useMemo(() => {
-    return coupons.filter((coupon: Coupon) => {
+    return coupons.filter((coupon) => {
       const matchesSearch = coupon.code
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
@@ -432,16 +1458,16 @@ export default function AdminCoupons() {
     const totalCoupons = coupons.length;
 
     const activeCoupons = coupons.filter(
-      (coupon: Coupon) =>
+      (coupon) =>
         coupon.isActive && new Date(coupon.expiryDate).getTime() > Date.now(),
     ).length;
 
     const expiredCoupons = coupons.filter(
-      (coupon: Coupon) => new Date(coupon.expiryDate).getTime() < Date.now(),
+      (coupon) => new Date(coupon.expiryDate).getTime() < Date.now(),
     ).length;
 
     const totalUsage = coupons.reduce(
-      (sum: number, coupon: Coupon) => sum + coupon.usedCount,
+      (sum, coupon) => sum + Number(coupon.usedCount ?? 0),
       0,
     );
 
@@ -582,38 +1608,78 @@ export default function AdminCoupons() {
         </div>
       ) : viewMode === "card" || window.innerWidth < 768 ? (
         <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredCoupons.map((coupon: Coupon) => {
+          {filteredCoupons.map((coupon) => {
             const isExpired =
               new Date(coupon.expiryDate).getTime() < Date.now();
 
-            const usageReached = coupon.usedCount >= coupon.usageLimit;
+            const usageReached =
+              Number(coupon.usedCount ?? 0) >= Number(coupon.usageLimit ?? 0);
 
             const usagePercentage =
-              coupon.usageLimit > 0
-                ? (coupon.usedCount / coupon.usageLimit) * 100
+              Number(coupon.usageLimit ?? 0) > 0
+                ? (Number(coupon.usedCount ?? 0) / Number(coupon.usageLimit)) *
+                  100
                 : 0;
+
+            const couponType = coupon.couponType ?? "GENERAL";
+
+            const categories = Array.isArray(coupon.applicableCategories)
+              ? coupon.applicableCategories
+              : [];
+
+            const isAllProducts = categories.length === 0;
 
             return (
               <div
-                key={coupon._id}
+                key={String(coupon._id)}
                 className="
-        bg-white
-        border
-        rounded-3xl
-        shadow-sm
-        hover:shadow-xl
-        transition-all
-        duration-300
-        overflow-hidden
-      "
+            overflow-hidden
+            rounded-3xl
+            border
+            bg-white
+            shadow-sm
+            transition-all
+            duration-300
+            hover:-translate-y-1
+            hover:shadow-xl
+          "
               >
                 <div className="bg-linear-to-r from-indigo-600 via-blue-600 to-cyan-600 p-5 text-white">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-bold text-xl">{coupon.code}</h3>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="truncate text-xl font-bold">
+                        {String(coupon.code ?? "")}
+                      </h3>
+
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                            couponType === "WELCOME"
+                              ? "bg-purple-100 text-purple-700"
+                              : "bg-white/20 text-white"
+                          }`}
+                        >
+                          {couponType === "WELCOME"
+                            ? "Welcome Coupon"
+                            : "General Coupon"}
+                        </span>
+
+                        <span className="rounded-full bg-white/20 px-2.5 py-1 text-[11px] font-semibold text-white">
+                          {isAllProducts
+                            ? "All Products"
+                            : `${categories.length} ${
+                                categories.length === 1
+                                  ? "Category"
+                                  : "Categories"
+                              }`}
+                        </span>
+                      </div>
+                    </div>
 
                     <button
+                      type="button"
                       onClick={() => toggleCouponStatus(coupon)}
-                      className={`px-3 py-1 rounded-full text-xs font-semibold transition hover:scale-105 cursor-pointer ${
+                      className={`shrink-0 cursor-pointer rounded-full px-3 py-1 text-xs font-semibold transition hover:scale-105 ${
                         usageReached
                           ? "bg-yellow-100 text-yellow-700"
                           : isExpired
@@ -634,56 +1700,109 @@ export default function AdminCoupons() {
                   </div>
 
                   <p className="mt-4 text-3xl font-bold">
-                    {coupon.discountPercentage ?? 0}% OFF
+                    {Number(coupon.discountPercentage ?? 0).toFixed(0)}% OFF
                   </p>
 
-                  {coupon.maxDiscount && (
-                    <p className="text-sm text-blue-100 mt-1">
-                      Max Discount ₹{coupon.maxDiscount}
-                    </p>
-                  )}
+                  <p className="mt-1 text-sm text-blue-100">
+                    Maximum discount:{" "}
+                    {coupon.maxDiscount
+                      ? `₹${Number(coupon.maxDiscount).toLocaleString()}`
+                      : "No maximum limit"}
+                  </p>
                 </div>
 
                 <div className="p-5">
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Min Order</span>
-                      <span className="font-medium">
-                        ₹{coupon.minOrderAmount}
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Applicable on
+                    </p>
+
+                    <div className="flex flex-wrap gap-2">
+                      {isAllProducts ? (
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                          All Products
+                        </span>
+                      ) : (
+                        categories.map((category) => (
+                          <span
+                            key={category}
+                            className="rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold uppercase text-blue-700"
+                          >
+                            {category}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-5 space-y-3">
+                    <div className="flex justify-between gap-4 text-sm">
+                      <span className="text-muted-foreground">Coupon Type</span>
+
+                      <span className="text-right font-medium">
+                        {couponType === "WELCOME" ? "Welcome" : "General"}
                       </span>
                     </div>
 
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between gap-4 text-sm">
+                      <span className="text-muted-foreground">
+                        Minimum Order
+                      </span>
+
+                      <span className="text-right font-medium">
+                        ₹{Number(coupon.minOrderAmount ?? 0).toLocaleString()}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between gap-4 text-sm">
+                      <span className="text-muted-foreground">
+                        Maximum Discount
+                      </span>
+
+                      <span className="text-right font-medium">
+                        {coupon.maxDiscount
+                          ? `₹${Number(coupon.maxDiscount).toLocaleString()}`
+                          : "Unlimited"}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between gap-4 text-sm">
                       <span className="text-muted-foreground">Usage</span>
-                      <span className="font-medium">
-                        {coupon.usedCount} / {coupon.usageLimit}
+
+                      <span className="text-right font-medium">
+                        {Number(coupon.usedCount ?? 0)} /{" "}
+                        {Number(coupon.usageLimit ?? 0)}
                       </span>
                     </div>
 
-                    <div className="flex justify-between text-sm">
+                    <div className="flex justify-between gap-4 text-sm">
                       <span className="text-muted-foreground">Expires</span>
-                      <span className="font-medium">
+
+                      <span className="text-right font-medium">
                         {new Date(coupon.expiryDate).toLocaleDateString()}
                       </span>
                     </div>
                   </div>
 
                   <div className="mt-5">
-                    <div className="flex justify-between text-xs mb-2">
+                    <div className="mb-2 flex justify-between text-xs">
                       <span className="text-muted-foreground">
                         Coupon Usage
                       </span>
 
                       <span className="font-medium">
-                        {usagePercentage.toFixed(0)}%
+                        {usagePercentage.toFixed(1)}%
                       </span>
                     </div>
 
-                    <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
                       <div
-                        className="h-full bg-primary rounded-full"
+                        className="h-full rounded-full bg-primary transition-all duration-300"
                         style={{
-                          width: `${Math.min(usagePercentage, 100)}%`,
+                          width: `${Math.min(
+                            Math.max(usagePercentage, 0),
+                            100,
+                          )}%`,
                         }}
                       />
                     </div>
@@ -693,14 +1812,14 @@ export default function AdminCoupons() {
                     <Button
                       variant="outline"
                       className="
-    flex-1
-    border-slate-300
-    hover:bg-slate-900
-    hover:text-white
-    hover:border-slate-900
-    transition-all
-    duration-200
-  "
+                  flex-1
+                  border-slate-300
+                  transition-all
+                  duration-200
+                  hover:border-slate-900
+                  hover:bg-slate-900
+                  hover:text-white
+                "
                       onClick={() => editCoupon(coupon)}
                     >
                       Edit
@@ -709,16 +1828,16 @@ export default function AdminCoupons() {
                     <Button
                       variant="outline"
                       className="
-    flex-1
-    text-red-600
-    border-red-300
-    hover:bg-red-600
-    hover:text-white
-    hover:border-red-600
-    transition-all
-    duration-200
-  "
-                      onClick={() => handleDeleteCoupon(coupon._id)}
+                  flex-1
+                  border-red-300
+                  text-red-600
+                  transition-all
+                  duration-200
+                  hover:border-red-600
+                  hover:bg-red-600
+                  hover:text-white
+                "
+                      onClick={() => handleDeleteCoupon(String(coupon._id))}
                     >
                       Delete
                     </Button>
@@ -730,38 +1849,136 @@ export default function AdminCoupons() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-3xl border bg-white shadow-sm">
-          <table className="w-full">
+          <table className="min-w-[1250px] w-full">
             <thead>
               <tr className="border-b bg-slate-50">
-                <th className="text-left p-4">Code</th>
-                <th className="text-left p-4">Discount</th>
-                <th className="text-left p-4">Min Order</th>
-                <th className="text-left p-4">Usage</th>
-                <th className="text-left p-4">Expiry</th>
-                <th className="text-left p-4">Status</th>
-                <th className="text-center p-4">Actions</th>
+                <th className="p-4 text-left">Code</th>
+
+                <th className="p-4 text-left">Type</th>
+
+                <th className="p-4 text-left">Categories</th>
+
+                <th className="p-4 text-left">Discount</th>
+
+                <th className="p-4 text-left">Min Order</th>
+
+                <th className="p-4 text-left">Max Discount</th>
+
+                <th className="p-4 text-left">Usage</th>
+
+                <th className="p-4 text-left">Usage %</th>
+
+                <th className="p-4 text-left">Expiry</th>
+
+                <th className="p-4 text-left">Status</th>
+
+                <th className="p-4 text-center">Actions</th>
               </tr>
             </thead>
 
             <tbody>
-              {filteredCoupons.map((coupon: Coupon) => {
+              {filteredCoupons.map((coupon) => {
                 const isExpired =
                   new Date(coupon.expiryDate).getTime() < Date.now();
 
-                const usageReached = coupon.usedCount >= coupon.usageLimit;
+                const usageReached =
+                  Number(coupon.usedCount ?? 0) >=
+                  Number(coupon.usageLimit ?? 0);
+
+                const usagePercentage =
+                  Number(coupon.usageLimit ?? 0) > 0
+                    ? (Number(coupon.usedCount ?? 0) /
+                        Number(coupon.usageLimit)) *
+                      100
+                    : 0;
+
+                const couponType = coupon.couponType ?? "GENERAL";
+
+                const categories = Array.isArray(coupon.applicableCategories)
+                  ? coupon.applicableCategories
+                  : [];
 
                 return (
-                  <tr key={coupon._id} className="border-b hover:bg-slate-50">
-                    <td className="p-4 font-semibold">{coupon.code}</td>
-
+                  <tr
+                    key={String(coupon._id)}
+                    className="border-b transition hover:bg-slate-50"
+                  >
                     <td className="p-4">
-                      {coupon.discountPercentage ?? 0}% OFF
+                      <div className="font-semibold">
+                        {String(coupon.code ?? "")}
+                      </div>
                     </td>
 
-                    <td className="p-4">₹{coupon.minOrderAmount}</td>
+                    <td className="p-4">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          couponType === "WELCOME"
+                            ? "bg-purple-100 text-purple-700"
+                            : "bg-blue-100 text-blue-700"
+                        }`}
+                      >
+                        {couponType === "WELCOME" ? "Welcome" : "General"}
+                      </span>
+                    </td>
 
                     <td className="p-4">
-                      {coupon.usedCount}/{coupon.usageLimit}
+                      <div className="flex max-w-60 flex-wrap gap-1.5">
+                        {categories.length === 0 ? (
+                          <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
+                            All Products
+                          </span>
+                        ) : (
+                          categories.map((category) => (
+                            <span
+                              key={category}
+                              className="rounded-full bg-blue-50 px-2 py-1 text-xs font-medium uppercase text-blue-700"
+                            >
+                              {category}
+                            </span>
+                          ))
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="p-4 font-medium">
+                      {Number(coupon.discountPercentage ?? 0).toFixed(0)}% OFF
+                    </td>
+
+                    <td className="p-4">
+                      ₹{Number(coupon.minOrderAmount ?? 0).toLocaleString()}
+                    </td>
+
+                    <td className="p-4">
+                      {coupon.maxDiscount
+                        ? `₹${Number(coupon.maxDiscount).toLocaleString()}`
+                        : "Unlimited"}
+                    </td>
+
+                    <td className="p-4">
+                      {Number(coupon.usedCount ?? 0)} /{" "}
+                      {Number(coupon.usageLimit ?? 0)}
+                    </td>
+
+                    <td className="p-4">
+                      <div className="min-w-28">
+                        <div className="mb-1 flex items-center justify-between gap-2 text-xs">
+                          <span className="font-medium">
+                            {usagePercentage.toFixed(1)}%
+                          </span>
+                        </div>
+
+                        <div className="h-1.5 overflow-hidden rounded-full bg-slate-200">
+                          <div
+                            className="h-full rounded-full bg-primary"
+                            style={{
+                              width: `${Math.min(
+                                Math.max(usagePercentage, 0),
+                                100,
+                              )}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
                     </td>
 
                     <td className="p-4">
@@ -770,8 +1987,9 @@ export default function AdminCoupons() {
 
                     <td className="p-4">
                       <button
+                        type="button"
                         onClick={() => toggleCouponStatus(coupon)}
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
                           usageReached
                             ? "bg-yellow-100 text-yellow-700"
                             : isExpired
@@ -795,15 +2013,13 @@ export default function AdminCoupons() {
                       <div className="flex justify-center gap-2">
                         <Button
                           variant="outline"
+                          size="sm"
                           className="
-    flex-1
-    border-slate-300
-    hover:bg-slate-900
-    hover:text-white
-    hover:border-slate-900
-    transition-all
-    duration-200
-  "
+                      border-slate-300
+                      hover:border-slate-900
+                      hover:bg-slate-900
+                      hover:text-white
+                    "
                           onClick={() => editCoupon(coupon)}
                         >
                           Edit
@@ -811,17 +2027,15 @@ export default function AdminCoupons() {
 
                         <Button
                           variant="outline"
+                          size="sm"
                           className="
-    flex-1
-    text-red-600
-    border-red-300
-    hover:bg-red-600
-    hover:text-white
-    hover:border-red-600
-    transition-all
-    duration-200
-  "
-                          onClick={() => handleDeleteCoupon(coupon._id)}
+                      border-red-300
+                      text-red-600
+                      hover:border-red-600
+                      hover:bg-red-600
+                      hover:text-white
+                    "
+                          onClick={() => handleDeleteCoupon(String(coupon._id))}
                         >
                           Delete
                         </Button>

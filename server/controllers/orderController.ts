@@ -4,6 +4,7 @@ import { User } from "server/models/User.js";
 import Coupon from "server/models/Coupon.js";
 import { Product } from "server/models/Products.js";
 import { sendOrderConfirmationEmail } from "server/utils/emailService.js";
+import CouponUsage from "server/models/CouponUsage.js";
 
 // ===============================
 // 🛒 PLACE ORDER
@@ -14,14 +15,8 @@ export const createOrder = async (
   res: Response,
 ): Promise<void> => {
   try {
-    const {
-      email,
-      items,
-      shippingAddress,
-      paymentMethod,
-      couponCode,
-      couponDiscount,
-    } = req.body;
+    const { email, items, shippingAddress, paymentMethod, couponCode } =
+      req.body;
 
     // =====================
     // VALIDATION
@@ -40,6 +35,8 @@ export const createOrder = async (
 
       return;
     }
+
+    const normalizedEmail = String(email).trim().toLowerCase();
 
     const payment = String(paymentMethod).toLowerCase();
 
@@ -104,6 +101,7 @@ export const createOrder = async (
       verifiedItems.push({
         productId: product._id,
         name: product.name,
+        category: String(product.category).trim().toLowerCase(),
         images:
           productImages.length > 0
             ? productImages
@@ -124,24 +122,133 @@ export const createOrder = async (
       0,
     );
 
-    const normalizedCouponDiscount = Math.max(0, Number(couponDiscount || 0));
+    let validatedCoupon: InstanceType<typeof Coupon> | null = null;
 
-    const totalAmount = Math.max(0, subtotal - normalizedCouponDiscount);
+    let normalizedCouponCode = "";
+
+    let calculatedCouponDiscount = 0;
+
+    if (couponCode) {
+      normalizedCouponCode = String(couponCode).trim().toUpperCase();
+
+      validatedCoupon = await Coupon.findOne({
+        code: normalizedCouponCode,
+      });
+
+      if (!validatedCoupon) {
+        res.status(400).json({
+          message: "Invalid coupon",
+        });
+
+        return;
+      }
+
+      if (!validatedCoupon.isActive) {
+        res.status(400).json({
+          message: "Coupon is inactive",
+        });
+
+        return;
+      }
+
+      if (validatedCoupon.expiryDate < new Date()) {
+        res.status(400).json({
+          message: "Coupon has expired",
+        });
+
+        return;
+      }
+
+      if (validatedCoupon.usedCount >= validatedCoupon.usageLimit) {
+        res.status(400).json({
+          message: "Coupon usage limit reached",
+        });
+
+        return;
+      }
+
+      if (subtotal < validatedCoupon.minOrderAmount) {
+        res.status(400).json({
+          message: `Minimum order amount is ₹${validatedCoupon.minOrderAmount}`,
+        });
+
+        return;
+      }
+
+      // =====================
+      // CHECK CATEGORY RULES
+      // =====================
+
+      const applicableCategories = Array.isArray(
+        validatedCoupon.applicableCategories,
+      )
+        ? validatedCoupon.applicableCategories
+            .map((category: string) => String(category).trim().toLowerCase())
+            .filter(Boolean)
+        : [];
+
+      if (applicableCategories.length > 0) {
+        const hasEligibleProduct = verifiedItems.some((item) =>
+          applicableCategories.includes(item.category),
+        );
+
+        if (!hasEligibleProduct) {
+          res.status(400).json({
+            message:
+              "This coupon is not applicable to the products in your cart",
+          });
+
+          return;
+        }
+      }
+
+      if (validatedCoupon.couponType === "WELCOME") {
+        const existingUsage = await CouponUsage.findOne({
+          couponId: validatedCoupon._id,
+          userEmail: normalizedEmail,
+        });
+
+        if (existingUsage) {
+          res.status(400).json({
+            message: "You have already used this welcome coupon",
+          });
+
+          return;
+        }
+      }
+
+      calculatedCouponDiscount =
+        (subtotal * validatedCoupon.discountPercentage) / 100;
+
+      if (
+        validatedCoupon.maxDiscount !== undefined &&
+        validatedCoupon.maxDiscount !== null &&
+        calculatedCouponDiscount > validatedCoupon.maxDiscount
+      ) {
+        calculatedCouponDiscount = validatedCoupon.maxDiscount;
+      }
+
+      calculatedCouponDiscount = Number(calculatedCouponDiscount.toFixed(2));
+    }
+
+    const totalAmount = Number(
+      Math.max(0, subtotal - calculatedCouponDiscount).toFixed(2),
+    );
 
     // =====================
     // CREATE ORDER
     // =====================
 
     const order = await Order.create({
-      userId: email,
+      userId: normalizedEmail,
 
       items: verifiedItems,
 
       totalAmount,
 
-      couponCode: couponCode ? String(couponCode).trim().toUpperCase() : "",
+      couponCode: normalizedCouponCode,
 
-      couponDiscount: normalizedCouponDiscount,
+      couponDiscount: calculatedCouponDiscount,
 
       shippingAddress,
 
@@ -153,20 +260,42 @@ export const createOrder = async (
     });
 
     // =====================
-    // UPDATE COUPON
+    // RECORD COUPON USAGE
     // =====================
 
-    if (couponCode) {
-      await Coupon.findOneAndUpdate(
-        {
-          code: String(couponCode).trim().toUpperCase(),
+    const couponToUse = validatedCoupon;
+
+    if (couponToUse !== null) {
+      const couponId = couponToUse._id;
+
+      if (couponToUse.couponType === "WELCOME") {
+        try {
+          await CouponUsage.create({
+            couponId,
+            couponCode: couponToUse.code,
+            userEmail: normalizedEmail,
+            orderId: order._id,
+          });
+        } catch (usageError: any) {
+          await Order.findByIdAndDelete(order._id);
+
+          if (usageError?.code === 11000) {
+            res.status(400).json({
+              message: "You have already used this welcome coupon",
+            });
+
+            return;
+          }
+
+          throw usageError;
+        }
+      }
+
+      await Coupon.findByIdAndUpdate(couponId, {
+        $inc: {
+          usedCount: 1,
         },
-        {
-          $inc: {
-            usedCount: 1,
-          },
-        },
-      );
+      });
     }
 
     // =====================
@@ -243,8 +372,7 @@ export const getUserOrders = async (
       userId: user.email,
     })
       .sort({ createdAt: -1 })
-      .populate("items.productId", "name images")
-      .select(`
+      .populate("items.productId", "name images").select(`
   items
   totalAmount
   couponCode
@@ -255,7 +383,7 @@ export const getUserOrders = async (
   paymentMethod
   shippingAddress
   createdAt
-`)
+`);
 
     res.status(200).json({
       message: "User orders fetched successfully",

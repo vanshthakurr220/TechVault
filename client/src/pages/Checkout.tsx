@@ -10,6 +10,8 @@ export default function Checkout() {
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [couponLoading, setCouponLoading] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
+  const [eligibleCouponsLoading, setEligibleCouponsLoading] = useState(false);
   const [, navigate] = useLocation();
   const {
     user,
@@ -18,8 +20,7 @@ export default function Checkout() {
     getCartItems,
     createOrder,
     validateCoupon,
-    coupons,
-    fetchCoupons,
+    getEligibleCoupons,
   } = useApp();
 
   const [loading, setLoading] = useState(false);
@@ -39,14 +40,14 @@ export default function Checkout() {
 
   // Memoize loadCart to prevent it being a dependency that changes
   const loadCart = useCallback(async () => {
-  try {
-    const items = await getCartItems();
-    setCartItems(items);
-  } catch (error) {
-    console.error("Error fetching cart:", error);
-    toast.error("Failed to load cart items");
-  }
-}, [getCartItems]);
+    try {
+      const items = await getCartItems();
+      setCartItems(items);
+    } catch (error) {
+      console.error("Error fetching cart:", error);
+      toast.error("Failed to load cart items");
+    }
+  }, [getCartItems]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -60,8 +61,7 @@ export default function Checkout() {
     }
 
     fetchAddresses();
-    fetchCoupons();
-  }, [user?.email, loadCart, fetchAddresses, fetchCoupons]);
+  }, [user?.email, loadCart, fetchAddresses]);
 
   useEffect(() => {
     // Only auto-fill if we haven't already and we have addresses
@@ -84,34 +84,86 @@ export default function Checkout() {
   }, [addresses, user?.username]);
 
   const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.productId.price * item.quantity,
+    (sum, item) =>
+      sum +
+      Number(item.productId?.price ?? item.price ?? 0) *
+        Number(item.quantity ?? 1),
     0,
   );
-  const finalTotal = subtotal - couponDiscount;
 
-  const availableCoupons = coupons
-    .filter((coupon: any) => {
-      const isExpired = new Date(coupon.expiryDate).getTime() < Date.now();
-      const usageReached = coupon.usedCount >= coupon.usageLimit;
+  const couponRequestItems = cartItems
+    .map((item: any) => ({
+      productId: item.productId?._id || item.productId,
+      quantity: Number(item.quantity ?? 1),
+    }))
+    .filter((item: any) => Boolean(item.productId));
 
-      return (
-        coupon.isActive &&
-        !isExpired &&
-        !usageReached &&
-        subtotal >= coupon.minOrderAmount
-      );
-    })
-    .map((coupon: any) => {
-      let discount = (subtotal * coupon.discountPercentage) / 100;
-      if (coupon.maxDiscount) {
-        discount = Math.min(discount, coupon.maxDiscount);
+  const finalTotal = Math.max(0, subtotal - couponDiscount);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadEligibleCoupons = async () => {
+      if (!user?.email || subtotal <= 0 || couponRequestItems.length === 0) {
+        setAvailableCoupons([]);
+        return;
       }
-      return {
-        ...coupon,
-        calculatedDiscount: Math.floor(discount),
-      };
-    })
-    .sort((a: any, b: any) => b.calculatedDiscount - a.calculatedDiscount);
+
+      try {
+        setEligibleCouponsLoading(true);
+
+        const eligibleCoupons = await getEligibleCoupons(
+          subtotal,
+          couponRequestItems,
+        );
+
+        if (cancelled) return;
+
+        const sortedCoupons = [...eligibleCoupons].sort(
+          (a: any, b: any) =>
+            Number(b.calculatedDiscount ?? b.discount ?? 0) -
+            Number(a.calculatedDiscount ?? a.discount ?? 0),
+        );
+
+        setAvailableCoupons(sortedCoupons);
+      } catch (error) {
+        console.error("Failed to load eligible coupons:", error);
+
+        if (!cancelled) {
+          setAvailableCoupons([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setEligibleCouponsLoading(false);
+        }
+      }
+    };
+
+    loadEligibleCoupons();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.email, subtotal, cartItems, getEligibleCoupons]);
+
+  // ADD THE NEW EFFECT HERE
+  useEffect(() => {
+    if (!appliedCoupon) return;
+
+    const couponStillEligible = availableCoupons.some(
+      (coupon: any) => coupon.code === appliedCoupon.code,
+    );
+
+    if (!eligibleCouponsLoading && !couponStillEligible) {
+      setCouponCode("");
+      setCouponDiscount(0);
+      setAppliedCoupon(null);
+
+      toast.info(
+        "The applied coupon is no longer eligible for the current cart.",
+      );
+    }
+  }, [availableCoupons, appliedCoupon, eligibleCouponsLoading]);
 
   const applyCouponLogic = async (code: string) => {
     if (!code.trim()) {
@@ -121,12 +173,18 @@ export default function Checkout() {
 
     try {
       setCouponLoading(true);
-      const response = await validateCoupon(code, subtotal);
+      const response = await validateCoupon(code, subtotal, couponRequestItems);
 
       if (response.success) {
-        setCouponCode(code);
-        setCouponDiscount(response.discount);
-        setAppliedCoupon(response.coupon);
+        const validatedDiscount = Number(response.discount ?? 0);
+
+        setCouponCode(code.trim().toUpperCase());
+        setCouponDiscount(validatedDiscount);
+        setAppliedCoupon({
+          ...response.coupon,
+          code: response.coupon?.code || code.trim().toUpperCase(),
+          calculatedDiscount: validatedDiscount,
+        });
         toast.success(
           `Coupon Applied! ₹${Math.round(response.discount)} discount`,
         );
@@ -196,7 +254,6 @@ export default function Checkout() {
         },
         form.paymentMethod,
         appliedCoupon?.code || "",
-        couponDiscount,
       );
 
       if (mode === "buynow") {
@@ -333,7 +390,11 @@ export default function Checkout() {
 
             <hr className="my-6" />
 
-            {availableCoupons.length > 0 && (
+            {eligibleCouponsLoading ? (
+              <div className="mb-6 rounded-lg border p-4">
+                <Loader text="Finding the best offers..." />
+              </div>
+            ) : availableCoupons.length > 0 ? (
               <div className="mb-6">
                 <p className="text-sm font-semibold mb-3">Available Offers</p>
                 {availableCoupons.map((coupon: any, index: number) => (
@@ -353,12 +414,19 @@ export default function Checkout() {
                         )}
                       </div>
                       <p className="text-sm text-green-600 font-medium">
-                        Save ₹{coupon.calculatedDiscount}
+                        Save ₹
+                        {Number(
+                          coupon.calculatedDiscount ?? coupon.discount ?? 0,
+                        ).toLocaleString()}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Pay only ₹
-                        {(
-                          subtotal - coupon.calculatedDiscount
+                        {Math.max(
+                          0,
+                          subtotal -
+                            Number(
+                              coupon.calculatedDiscount ?? coupon.discount ?? 0,
+                            ),
                         ).toLocaleString()}
                       </p>
                     </div>
@@ -376,6 +444,17 @@ export default function Checkout() {
                     </Button>
                   </div>
                 ))}
+              </div>
+            ) : (
+              <div className="mb-6 rounded-lg border border-dashed p-4 text-center">
+                <p className="text-sm font-medium">
+                  No eligible offers available
+                </p>
+
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Add more products or increase the order amount to unlock
+                  coupons.
+                </p>
               </div>
             )}
 

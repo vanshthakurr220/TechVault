@@ -62,6 +62,7 @@ export default function ProductDetail() {
     addToCart: addProductToCart,
     fetchProductReviews,
     submitReview: submitProductReview,
+    updateReview: updateProductReview,
     fetchProductQuestions,
     askProductQuestion,
     voteProductAnswer,
@@ -72,6 +73,8 @@ export default function ProductDetail() {
   } = useApp();
 
   const notify = useNotification();
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
+  const [editingReview, setEditingReview] = useState(false);
   const [product, setProduct] = useState<Product | null>(null);
   const [reviewLoading, setReviewLoading] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -161,9 +164,15 @@ export default function ProductDetail() {
     }
     try {
       setSubmittingReview(true);
-      await submitProductReview(params.id, rating, comment);
+      if (editingReview && editingReviewId) {
+        await updateProductReview(editingReviewId, rating, comment);
+      } else {
+        await submitProductReview(params.id, rating, comment);
+      }
       setComment("");
       setRating(5);
+      setEditingReview(false);
+      setEditingReviewId(null);
     } catch (error: any) {
       Swal.fire({
         icon: "error",
@@ -608,6 +617,27 @@ ${productUrl}`;
         });
       },
     });
+  };
+
+  const startEditingReview = (review: (typeof reviews)[number]) => {
+    setEditingReviewId(review._id);
+    setRating(review.rating);
+    setComment(review.comment);
+    setEditingReview(true);
+
+    window.setTimeout(() => {
+      document.getElementById("review-form")?.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }, 50);
+  };
+
+  const cancelEditingReview = () => {
+    setEditingReview(false);
+    setEditingReviewId(null);
+    setRating(5);
+    setComment("");
   };
 
   return (
@@ -1803,7 +1833,7 @@ ${productUrl}`;
 
             <div className="grid grid-cols-1 gap-7 lg:grid-cols-[0.8fr_1.4fr] lg:gap-8">
               {/* Review form */}
-              <div>
+              <div id="review-form" className="scroll-mt-28">
                 <div
                   className="
           sticky
@@ -1827,12 +1857,13 @@ ${productUrl}`;
                       </p>
 
                       <h3 className="mt-1 text-xl font-extrabold text-slate-950 sm:text-2xl">
-                        Write a Review
+                        {editingReview ? "Edit Your Review" : "Write a Review"}
                       </h3>
 
                       <p className="mt-2 text-sm leading-6 text-slate-500">
-                        Tell other customers what you liked or disliked about
-                        this product.
+                        {editingReview
+                          ? "Update your rating or make changes to your existing feedback."
+                          : "Tell other customers what you liked or disliked about this product."}
                       </p>
                     </div>
 
@@ -1935,42 +1966,88 @@ ${productUrl}`;
                         </div>
                       </div>
 
-                      <Button
-                        onClick={submitReview}
-                        disabled={submittingReview}
-                        className="
-                group/review
-                relative
-                h-13
-                w-full
-                overflow-hidden
-                rounded-2xl
-                bg-slate-950
-                text-sm
-                font-extrabold
-                text-white
-                shadow-[0_14px_35px_rgba(15,23,42,0.20)]
-                transition-all
-                duration-300
-                before:absolute
-                before:inset-0
-                before:-translate-x-full
-                before:bg-linear-to-r
-                before:from-transparent
-                before:via-white/20
-                before:to-transparent
-                before:transition-transform
-                before:duration-700
-                hover:-translate-y-1
-                hover:bg-primary
-                hover:shadow-[0_18px_40px_rgba(37,99,235,0.24)]
-                hover:before:translate-x-full
-              "
+                      <div
+                        className={cn(
+                          "grid gap-3",
+                          editingReview
+                            ? "grid-cols-1 sm:grid-cols-2"
+                            : "grid-cols-1",
+                        )}
                       >
-                        <span className="relative z-10">
-                          {submittingReview ? "Submitting..." : "Submit Review"}
-                        </span>
-                      </Button>
+                        {editingReview && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={cancelEditingReview}
+                            disabled={submittingReview}
+                            className="
+        h-13
+        rounded-2xl
+        border-2
+        border-slate-200
+        bg-white
+        text-sm
+        font-extrabold
+        text-slate-700
+        transition-all
+        duration-300
+        hover:-translate-y-1
+        hover:border-slate-300
+        hover:bg-slate-100
+        hover:text-slate-950
+      "
+                          >
+                            Cancel
+                          </Button>
+                        )}
+
+                        <Button
+                          type="button"
+                          onClick={submitReview}
+                          disabled={submittingReview || !comment.trim()}
+                          className="
+      group/review
+      relative
+      h-13
+      w-full
+      overflow-hidden
+      rounded-2xl
+      bg-slate-950
+      text-sm
+      font-extrabold
+      text-white
+      shadow-[0_14px_35px_rgba(15,23,42,0.20)]
+      transition-all
+      duration-300
+      before:absolute
+      before:inset-0
+      before:-translate-x-full
+      before:bg-linear-to-r
+      before:from-transparent
+      before:via-white/20
+      before:to-transparent
+      before:transition-transform
+      before:duration-700
+      hover:-translate-y-1
+      hover:bg-primary
+      hover:shadow-[0_18px_40px_rgba(37,99,235,0.24)]
+      hover:before:translate-x-full
+      disabled:cursor-not-allowed
+      disabled:opacity-60
+      disabled:hover:translate-y-0
+    "
+                        >
+                          <span className="relative z-10">
+                            {submittingReview
+                              ? editingReview
+                                ? "Saving Changes..."
+                                : "Submitting..."
+                              : editingReview
+                                ? "Save Changes"
+                                : "Submit Review"}
+                          </span>
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2016,23 +2093,26 @@ ${productUrl}`;
                     {reviews.map((review, index) => (
                       <article
                         key={review._id}
-                        className="
-                group/review-card
-                relative
-                overflow-hidden
-                rounded-[1.5rem]
-                border
-                border-slate-200/80
-                bg-white
-                p-5
-                shadow-[0_10px_35px_rgba(15,23,42,0.05)]
-                transition-all
-                duration-400
-                hover:-translate-y-1
-                hover:border-primary/20
-                hover:shadow-[0_20px_48px_rgba(15,23,42,0.10)]
-                sm:p-6
-              "
+                        className={cn(
+                          `
+      group/review-card
+      relative
+      overflow-hidden
+      rounded-[1.5rem]
+      border
+      bg-white
+      p-5
+      shadow-[0_10px_35px_rgba(15,23,42,0.05)]
+      transition-all
+      duration-400
+      hover:-translate-y-1
+      hover:shadow-[0_20px_48px_rgba(15,23,42,0.10)]
+      sm:p-6
+    `,
+                          editingReviewId === review._id
+                            ? "border-primary/40 ring-4 ring-primary/10"
+                            : "border-slate-200/80 hover:border-primary/20",
+                        )}
                         style={{
                           animation: `reviewCardEntrance 0.5s cubic-bezier(0.22,1,0.36,1) ${
                             index * 70
@@ -2082,18 +2162,55 @@ ${productUrl}`;
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-2">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                size={15}
-                                className={
-                                  i < review.rating
-                                    ? getRatingColor(review.rating)
-                                    : "text-slate-200"
-                                }
-                              />
-                            ))}
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-3 py-2">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  size={15}
+                                  className={
+                                    i < review.rating
+                                      ? getRatingColor(review.rating)
+                                      : "text-slate-200"
+                                  }
+                                />
+                              ))}
+                            </div>
+
+                            {user?.email &&
+                              review.userEmail.toLowerCase() ===
+                                user.email.toLowerCase() && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => startEditingReview(review)}
+                                  disabled={
+                                    submittingReview &&
+                                    editingReviewId === review._id
+                                  }
+                                  className="
+          h-9
+          rounded-full
+          border-primary/20
+          bg-primary/5
+          px-4
+          text-xs
+          font-extrabold
+          text-primary
+          transition-all
+          duration-300
+          hover:-translate-y-0.5
+          hover:border-primary
+          hover:bg-primary
+          hover:text-white
+        "
+                                >
+                                  {editingReviewId === review._id
+                                    ? "Editing"
+                                    : "Edit Review"}
+                                </Button>
+                              )}
                           </div>
                         </div>
 

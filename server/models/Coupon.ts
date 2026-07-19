@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface ICoupon extends Document {
   code: string;
+
   discountPercentage: number;
 
   minOrderAmount: number;
@@ -9,13 +10,19 @@ export interface ICoupon extends Document {
   maxDiscount?: number;
 
   usageLimit: number;
+
   usedCount: number;
+
+  couponType: "GENERAL" | "WELCOME";
+
+  applicableCategories: string[];
 
   expiryDate: Date;
 
   isActive: boolean;
 
   createdAt: Date;
+
   updatedAt: Date;
 }
 
@@ -52,6 +59,23 @@ const couponSchema = new Schema<ICoupon>(
     usedCount: {
       type: Number,
       default: 0,
+    },
+
+    couponType: {
+      type: String,
+      enum: ["GENERAL", "WELCOME"],
+      default: "GENERAL",
+    },
+
+    applicableCategories: {
+      type: [String],
+      default: [],
+      set: (categories: string[]) =>
+        Array.isArray(categories)
+          ? categories
+              .map((category) => String(category).trim().toLowerCase())
+              .filter(Boolean)
+          : [],
     },
 
     expiryDate: {
