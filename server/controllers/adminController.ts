@@ -493,11 +493,7 @@ const allowedOrderStatusTransitions: Record<OrderStatus, OrderStatus[]> = {
 
 const orderStatusHistoryFields: Record<
   OrderStatus,
-  | "pendingAt"
-  | "processingAt"
-  | "shippedAt"
-  | "deliveredAt"
-  | "cancelledAt"
+  "pendingAt" | "processingAt" | "shippedAt" | "deliveredAt" | "cancelledAt"
 > = {
   pending: "pendingAt",
   processing: "processingAt",
@@ -649,8 +645,7 @@ export const changeStatusOrder = async (
       message: `Order status changed from ${previousStatus} to ${requestedStatus}`,
       previousStatus,
       currentStatus: requestedStatus,
-      allowedNextStatuses:
-        allowedOrderStatusTransitions[requestedStatus] || [],
+      allowedNextStatuses: allowedOrderStatusTransitions[requestedStatus] || [],
       order,
     });
   } catch (error: any) {

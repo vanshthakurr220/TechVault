@@ -217,18 +217,18 @@ export default function AdminOrders() {
   }, [orders]);
 
   const allowedStatusTransitions: Record<Order["status"], Order["status"][]> = {
-  pending: ["processing", "cancelled"],
-  processing: ["shipped", "cancelled"],
-  shipped: ["delivered"],
-  delivered: [],
-  cancelled: [],
-};
+    pending: ["processing", "cancelled"],
+    processing: ["shipped", "cancelled"],
+    shipped: ["delivered"],
+    delivered: [],
+    cancelled: [],
+  };
 
-const getAvailableStatuses = (
-  currentStatus: Order["status"],
-): Order["status"][] => {
-  return [currentStatus, ...allowedStatusTransitions[currentStatus]];
-};
+  const getAvailableStatuses = (
+    currentStatus: Order["status"],
+  ): Order["status"][] => {
+    return [currentStatus, ...allowedStatusTransitions[currentStatus]];
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -485,14 +485,18 @@ const getAvailableStatuses = (
 
                     <td className="px-6 py-4">
                       <select
-  value={order.status}
-  disabled={
-    order.status === "delivered" || order.status === "cancelled"
-  }
-  onChange={(e) =>
-    updateOrderStatus(order._id, e.target.value as Order["status"])
-  }
-  className={`
+                        value={order.status}
+                        disabled={
+                          order.status === "delivered" ||
+                          order.status === "cancelled"
+                        }
+                        onChange={(e) =>
+                          updateOrderStatus(
+                            order._id,
+                            e.target.value as Order["status"],
+                          )
+                        }
+                        className={`
     text-[11px] font-bold py-1.5 px-2 rounded-lg border outline-none
     ${
       order.status === "delivered" || order.status === "cancelled"
@@ -501,13 +505,13 @@ const getAvailableStatuses = (
     }
     ${getStatusColor(order.status)}
   `}
->
-  {getAvailableStatuses(order.status).map((status) => (
-    <option key={status} value={status}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
-    </option>
-  ))}
-</select>
+                      >
+                        {getAvailableStatuses(order.status).map((status) => (
+                          <option key={status} value={status}>
+                            {status.charAt(0).toUpperCase() + status.slice(1)}
+                          </option>
+                        ))}
+                      </select>
                     </td>
 
                     <td className="px-6 py-4 text-right">
@@ -606,14 +610,17 @@ const getAvailableStatuses = (
                 </select>
 
                 <select
-  value={order.status}
-  disabled={
-    order.status === "delivered" || order.status === "cancelled"
-  }
-  onChange={(e) =>
-    updateOrderStatus(order._id, e.target.value as Order["status"])
-  }
-  className={`
+                  value={order.status}
+                  disabled={
+                    order.status === "delivered" || order.status === "cancelled"
+                  }
+                  onChange={(e) =>
+                    updateOrderStatus(
+                      order._id,
+                      e.target.value as Order["status"],
+                    )
+                  }
+                  className={`
     text-[11px] font-bold py-1.5 px-2 rounded-lg border outline-none
     ${
       order.status === "delivered" || order.status === "cancelled"
@@ -622,13 +629,13 @@ const getAvailableStatuses = (
     }
     ${getStatusColor(order.status)}
   `}
->
-  {getAvailableStatuses(order.status).map((status) => (
-    <option key={status} value={status}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
-    </option>
-  ))}
-</select>
+                >
+                  {getAvailableStatuses(order.status).map((status) => (
+                    <option key={status} value={status}>
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
           ))
